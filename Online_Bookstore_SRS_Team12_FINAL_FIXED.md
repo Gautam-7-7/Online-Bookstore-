@@ -4,7 +4,7 @@ Online Bookstore
 
 Team: Team 12
 
-Members: Dhanush V Biradar (PES2UG24CS141) | D Sai Karthik (PES2UG24CS155) | Gautam Krishna (PES2UG24CS169) | G Nikhil (PES2UG24CS165)
+Members: D Sai Karthik (PES2UG24CS141) | Dhanush V Biradar (PES2UG24CS155) | Gautam Krishna (PES2UG24CS169) | G Nikhil (PES2UG24CS165)
 
 Version: 1.1
 
