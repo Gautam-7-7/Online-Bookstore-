@@ -325,3 +325,5 @@ The Buyer UML diagram no longer shows Add to Cart as <<include>> Checkout.
 ### 7.2 Use-Case Diagram 2 — Seller & Administrator
 ![UML Diagram 2 — Seller & Administrator](UML_Diagrams/UML_Diagram_2.png)
 
+
+**Document Version:** 1.0
