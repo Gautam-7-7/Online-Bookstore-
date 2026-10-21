@@ -55,3 +55,5 @@ jobs:
 
       - name: Run backend tests
         run: npm test -- --runInBand --testTimeout=60000
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
