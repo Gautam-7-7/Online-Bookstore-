@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend tests (Node.js 22, MongoDB 7)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      mongodb:
+        image: mongo:7.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ ping: 1 }).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    defaults:
+      run:
+        working-directory: server
+
+    env:
+      MONGODB_URI: mongodb://127.0.0.1:27017/online_bookstore_test
+      JWT_SECRET: ci-only-not-for-production
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: server/package-lock.json
+
+      - name: Install locked dependencies
+        run: npm ci
+
+      - name: Check JavaScript syntax
+        run: find src tests -name '*.js' -print0 | xargs -0 -r -n 1 node --check
+
+      - name: Verify MongoDB connectivity
+        run: node -e 'const mongoose=require("mongoose"); mongoose.connect(process.env.MONGODB_URI,{serverSelectionTimeoutMS:10000}).then(()=>mongoose.disconnect()).then(()=>console.log("MongoDB connection verified")).catch(error=>{console.error(error);process.exitCode=1;})'
+
+      - name: Run backend tests
+        run: npm test -- --runInBand --testTimeout=60000
+        env:
+          NODE_OPTIONS: --experimental-vm-modules
