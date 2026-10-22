@@ -149,14 +149,14 @@ const getBookById = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Reject malformed IDs before hitting the database.
-        if (!mongoose.Types.ObjectId.isValid(id)) {
-            return res.status(400).json({
-                message: "Invalid book ID"
-            });
-        }
+            // Reject malformed IDs before hitting the database.
+            if (!mongoose.Types.ObjectId.isValid(id)) {
+                return res.status(400).json({
+                    message: "Invalid book ID"
+                });
+            }
 
-        const book = await Book.findById(id);
+            const book = await Book.findById(id);
 
         if (!book) {
             return res.status(404).json({
