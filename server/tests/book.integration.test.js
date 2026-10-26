@@ -12,15 +12,59 @@ const Book = require("../src/models/Book");
 // Run with MongoDB available:  npm test
 
 const testIsbn = `97800000${Date.now().toString().slice(-5)}`;
+const fixtureIsbns = [
+    "9780000000001",
+    "9780000000002",
+    "9780000000003",
+    "9780000000004"
+];
 let createdBookId;
 
 describe("Catalogue API Integration Tests", () => {
     beforeAll(async () => {
         await mongoose.connect(process.env.MONGODB_URI);
+        await Book.create([
+            {
+                title: "Cheap Available Book",
+                author: "Filter Tester",
+                isbn: fixtureIsbns[0],
+                category: "Testing",
+                price: 50,
+                stock: 4,
+                rating: 3
+            },
+            {
+                title: "Expensive Available Book",
+                author: "Filter Tester",
+                isbn: fixtureIsbns[1],
+                category: "Testing",
+                price: 300,
+                stock: 2,
+                rating: 5
+            },
+            {
+                title: "Unavailable Book",
+                author: "Filter Tester",
+                isbn: fixtureIsbns[2],
+                category: "Testing",
+                price: 150,
+                stock: 0,
+                rating: 4
+            },
+            {
+                title: "Inactive Book",
+                author: "Filter Tester",
+                isbn: fixtureIsbns[3],
+                category: "Testing",
+                price: 25,
+                stock: 2,
+                isActive: false
+            }
+        ]);
     });
 
     afterAll(async () => {
-        await Book.deleteMany({ isbn: { $regex: "^97800000" } });
+        await Book.deleteMany({ isbn: { $in: [testIsbn, ...fixtureIsbns] } });
         await mongoose.connection.close();
     });
 
@@ -94,6 +138,74 @@ describe("Catalogue API Integration Tests", () => {
         expect(response.body.books.length).toBe(0);
     });
 
+    test("GET /api/books filters by category, price range, and availability", async () => {
+        const response = await request(app)
+            .get("/api/books")
+            .query({
+                category: "testing",
+                minPrice: 40,
+                maxPrice: 100,
+                availability: "in_stock"
+            });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.books.map((book) => book.title)).toEqual([
+            "Cheap Available Book"
+        ]);
+
+        const unavailable = await request(app)
+            .get("/api/books")
+            .query({ availability: "out_of_stock" });
+
+        expect(unavailable.statusCode).toBe(200);
+        expect(unavailable.body.books.map((book) => book.title)).toEqual([
+            "Unavailable Book"
+        ]);
+    });
+
+    test("GET /api/books sorts by price and rating", async () => {
+        const byPrice = await request(app)
+            .get("/api/books")
+            .query({ search: "Filter Tester", sort: "price_asc" });
+        const byRating = await request(app)
+            .get("/api/books")
+            .query({ search: "Filter Tester", sort: "rating_desc" });
+
+        expect(byPrice.statusCode).toBe(200);
+        expect(byPrice.body.books.map((book) => book.price)).toEqual([
+            50, 150, 300
+        ]);
+        expect(byRating.statusCode).toBe(200);
+        expect(byRating.body.books.map((book) => book.rating)).toEqual([
+            5, 4, 3
+        ]);
+    });
+
+    test("GET /api/books filters out inactive books", async () => {
+        const response = await request(app)
+            .get("/api/books")
+            .query({ search: "Inactive Book" });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.books).toHaveLength(0);
+    });
+
+    test("GET /api/books rejects invalid ranges, pagination, and availability", async () => {
+        const invalidQueries = [
+            { minPrice: 100, maxPrice: 10 },
+            { minPrice: -1 },
+            { page: 0 },
+            { limit: "not-a-number" },
+            { availability: "unknown" },
+            { sort: "unknown" }
+        ];
+
+        for (const query of invalidQueries) {
+            const response = await request(app).get("/api/books").query(query);
+            expect(response.statusCode).toBe(400);
+        }
+    });
+
     test("GET /api/books/:id returns a single book", async () => {
         const response = await request(app).get(`/api/books/${createdBookId}`);
 
@@ -110,6 +222,13 @@ describe("Catalogue API Integration Tests", () => {
     test("GET /api/books/:id with a nonexistent ID returns 404", async () => {
         const fakeId = new mongoose.Types.ObjectId().toString();
         const response = await request(app).get(`/api/books/${fakeId}`);
+
+        expect(response.statusCode).toBe(404);
+    });
+
+    test("GET /api/books/:id does not expose inactive books", async () => {
+        const inactiveBook = await Book.findOne({ isbn: fixtureIsbns[3] });
+        const response = await request(app).get(`/api/books/${inactiveBook._id}`);
 
         expect(response.statusCode).toBe(404);
     });

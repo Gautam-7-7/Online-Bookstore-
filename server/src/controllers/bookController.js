@@ -1,6 +1,34 @@
 const mongoose = require("mongoose");
 const Book = require("../models/Book");
 
+const SORT_OPTIONS = ["newest", "price_asc", "price_desc", "rating_desc"];
+const AVAILABILITY_OPTIONS = ["in_stock", "out_of_stock"];
+
+const parseNonNegativeNumber = (value) => {
+    if (value === undefined) {
+        return undefined;
+    }
+
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
+};
+
+const parsePositiveInteger = (value, defaultValue, maximum) => {
+    if (value === undefined) {
+        return defaultValue;
+    }
+
+    if (!/^\d+$/.test(String(value))) {
+        return null;
+    }
+
+    const parsed = Number(value);
+    return parsed >= 1 && parsed <= maximum ? parsed : null;
+};
+
+const escapeRegex = (value) =>
+    String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 // POST /api/books  -> create a book (BOOK: "add book" API)
 const createBook = async (req, res) => {
     try {
@@ -90,23 +118,64 @@ const getBooks = async (req, res) => {
 
         // Keyword search across title, author and ISBN (case-insensitive).
         if (search) {
-            const regex = new RegExp(search, "i");
+            const regex = new RegExp(escapeRegex(search), "i");
             query.$or = [{ title: regex }, { author: regex }, { isbn: regex }];
         }
 
         if (category) {
-            query.category = new RegExp(`^${category}$`, "i");
+            query.category = new RegExp(`^${escapeRegex(category)}$`, "i");
+        }
+
+        const parsedMinPrice = parseNonNegativeNumber(minPrice);
+        const parsedMaxPrice = parseNonNegativeNumber(maxPrice);
+        const pageNumber = parsePositiveInteger(page, 1, 1000000);
+        const pageSize = parsePositiveInteger(limit, 12, 100);
+
+        if (
+            parsedMinPrice === null ||
+            parsedMaxPrice === null ||
+            pageNumber === null ||
+            pageSize === null ||
+            (parsedMinPrice !== undefined &&
+                parsedMaxPrice !== undefined &&
+                parsedMinPrice > parsedMaxPrice)
+        ) {
+            return res.status(400).json({
+                message:
+                    "Invalid price range or pagination. Prices must be non-negative with minPrice <= maxPrice; page and limit must be positive integers."
+            });
+        }
+
+        if (sort !== undefined && !SORT_OPTIONS.includes(sort)) {
+            return res.status(400).json({
+                message: "Invalid sort option"
+            });
+        }
+
+        if (
+            req.query.availability !== undefined &&
+            !AVAILABILITY_OPTIONS.includes(req.query.availability)
+        ) {
+            return res.status(400).json({
+                message: "Invalid availability option"
+            });
         }
 
         // Price range filter.
-        if (minPrice !== undefined || maxPrice !== undefined) {
+        if (parsedMinPrice !== undefined || parsedMaxPrice !== undefined) {
             query.price = {};
-            if (minPrice !== undefined) {
-                query.price.$gte = Number(minPrice);
+            if (parsedMinPrice !== undefined) {
+                query.price.$gte = parsedMinPrice;
             }
-            if (maxPrice !== undefined) {
-                query.price.$lte = Number(maxPrice);
+            if (parsedMaxPrice !== undefined) {
+                query.price.$lte = parsedMaxPrice;
             }
+        }
+
+        if (req.query.availability === "in_stock") {
+            query.stock = { $gt: 0 };
+        } else if (req.query.availability === "out_of_stock") {
+            query.stock = 0;
         }
 
         // Sorting options.
@@ -121,8 +190,6 @@ const getBooks = async (req, res) => {
             sortOption = { createdAt: -1 };
         }
 
-        const pageNumber = Math.max(Number(page) || 1, 1);
-        const pageSize = Math.max(Number(limit) || 12, 1);
         const skip = (pageNumber - 1) * pageSize;
 
         const [books, totalBooks] = await Promise.all([
@@ -156,7 +223,7 @@ const getBookById = async (req, res) => {
                 });
             }
 
-            const book = await Book.findById(id);
+            const book = await Book.findOne({ _id: id, isActive: true });
 
         if (!book) {
             return res.status(404).json({

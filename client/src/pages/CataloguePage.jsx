@@ -15,6 +15,9 @@ export default function CataloguePage() {
     const [search, setSearch] = useState("");
     const [category, setCategory] = useState("");
     const [sort, setSort] = useState("newest");
+    const [minPrice, setMinPrice] = useState("");
+    const [maxPrice, setMaxPrice] = useState("");
+    const [availability, setAvailability] = useState("");
     const [page, setPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalBooks, setTotalBooks] = useState(0);
@@ -35,6 +38,9 @@ export default function CataloguePage() {
                     search,
                     category,
                     sort,
+                    minPrice,
+                    maxPrice,
+                    availability,
                     page,
                     limit: 12
                 });
@@ -62,7 +68,15 @@ export default function CataloguePage() {
         return () => {
             ignore = true;
         };
-    }, [search, category, sort, page]);
+    }, [
+        search,
+        category,
+        sort,
+        minPrice,
+        maxPrice,
+        availability,
+        page
+    ]);
 
     // Any filter change resets back to page 1.
     const handleSearch = (value) => {
@@ -120,6 +134,47 @@ export default function CataloguePage() {
                                     {opt.label}
                                 </option>
                             ))}
+                        </select>
+                    </label>
+
+                    <label className="field">
+                        <span className="field__label">Minimum price</span>
+                        <input
+                            type="number"
+                            min="0"
+                            value={minPrice}
+                            onChange={(e) => {
+                                setPage(1);
+                                setMinPrice(e.target.value);
+                            }}
+                        />
+                    </label>
+
+                    <label className="field">
+                        <span className="field__label">Maximum price</span>
+                        <input
+                            type="number"
+                            min="0"
+                            value={maxPrice}
+                            onChange={(e) => {
+                                setPage(1);
+                                setMaxPrice(e.target.value);
+                            }}
+                        />
+                    </label>
+
+                    <label className="field">
+                        <span className="field__label">Availability</span>
+                        <select
+                            value={availability}
+                            onChange={(e) => {
+                                setPage(1);
+                                setAvailability(e.target.value);
+                            }}
+                        >
+                            <option value="">All books</option>
+                            <option value="in_stock">In stock</option>
+                            <option value="out_of_stock">Out of stock</option>
                         </select>
                     </label>
                 </div>
