@@ -39,7 +39,6 @@ const createBook = async (req, res) => {
             category,
             price,
             condition,
-            seller,
             coverImage,
             stock,
             description
@@ -68,7 +67,7 @@ const createBook = async (req, res) => {
             category,
             price,
             condition,
-            seller,
+            seller: req.user.name,
             coverImage,
             stock,
             description

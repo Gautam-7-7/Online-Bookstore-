@@ -1,91 +1,75 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { registerUser } from "../api/auth.js";
+import { register } from "../api/auth.js";
 
 export default function RegisterPage() {
     const navigate = useNavigate();
-    const [form, setForm] = useState({ name: "", email: "", password: "" });
-    const [loading, setLoading] = useState(false);
+    const [name, setName] = useState("");
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState("");
-    const [success, setSuccess] = useState("");
-
-    const handleChange = (event) => {
-        const { name, value } = event.target;
-        setForm((current) => ({ ...current, [name]: value }));
-    };
+    const [submitting, setSubmitting] = useState(false);
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        setLoading(true);
         setError("");
-        setSuccess("");
+        setSubmitting(true);
 
         try {
-            const data = await registerUser(form);
-            setSuccess(data.message || "Registration successful");
-            setTimeout(() => navigate("/login"), 900);
-        } catch (err) {
-            setError(err.message);
+            await register({ name, email, password });
+            navigate("/login", {
+                replace: true,
+                state: { message: "Account created. Log in to continue." }
+            });
+        } catch (requestError) {
+            setError(requestError.message);
         } finally {
-            setLoading(false);
+            setSubmitting(false);
         }
     };
 
     return (
-        <section className="auth-page">
-            <div className="auth-card">
-                <h1>Create an account</h1>
-                <p className="auth-card__subtitle">
-                    Join the bookstore to manage your own listings.
-                </p>
-
-                <form className="auth-form" onSubmit={handleSubmit}>
-                    <label className="auth-form__field">
-                        <span>Name</span>
-                        <input
-                            type="text"
-                            name="name"
-                            value={form.name}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <label className="auth-form__field">
-                        <span>Email</span>
-                        <input
-                            type="email"
-                            name="email"
-                            value={form.email}
-                            onChange={handleChange}
-                            required
-                        />
-                    </label>
-
-                    <label className="auth-form__field">
-                        <span>Password</span>
-                        <input
-                            type="password"
-                            name="password"
-                            value={form.password}
-                            onChange={handleChange}
-                            minLength={6}
-                            required
-                        />
-                    </label>
-
-                    {error && <p className="form-error">{error}</p>}
-                    {success && <p className="form-success">{success}</p>}
-
-                    <button type="submit" className="btn btn--primary" disabled={loading}>
-                        {loading ? "Creating account..." : "Register"}
-                    </button>
-                </form>
-
-                <p className="auth-card__footer">
-                    Already have an account? <Link to="/login">Login here</Link>
-                </p>
-            </div>
+        <section className="form-page">
+            <h1>Create an account</h1>
+            {error && <p className="form-page__error" role="alert">{error}</p>}
+            <form className="form-card" onSubmit={handleSubmit}>
+                <label className="field">
+                    <span>Name</span>
+                    <input
+                        type="text"
+                        autoComplete="name"
+                        required
+                        value={name}
+                        onChange={(event) => setName(event.target.value)}
+                    />
+                </label>
+                <label className="field">
+                    <span>Email</span>
+                    <input
+                        type="email"
+                        autoComplete="email"
+                        required
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
+                    />
+                </label>
+                <label className="field">
+                    <span>Password</span>
+                    <input
+                        type="password"
+                        autoComplete="new-password"
+                        required
+                        value={password}
+                        onChange={(event) => setPassword(event.target.value)}
+                    />
+                </label>
+                <button className="search-bar__button" disabled={submitting}>
+                    {submitting ? "Creating account…" : "Register"}
+                </button>
+            </form>
+            <p className="form-page__switch">
+                Already registered? <Link to="/login">Log in</Link>
+            </p>
         </section>
     );
 }

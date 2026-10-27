@@ -1,4 +1,5 @@
 const express = require("express");
+const authenticate = require("../middleware/authenticate");
 const {
     createBook,
     getBooks,
@@ -7,7 +8,7 @@ const {
 
 const router = express.Router();
 
-router.post("/", createBook);
+router.post("/", authenticate, createBook);
 router.get("/", getBooks);
 router.get("/:id", getBookById);
 

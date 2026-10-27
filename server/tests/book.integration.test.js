@@ -4,6 +4,7 @@ const request = require("supertest");
 const mongoose = require("mongoose");
 const app = require("../src/app");
 const Book = require("../src/models/Book");
+const User = require("../src/models/User");
 
 // Integration tests for the catalogue API. They talk to the real database
 // via MONGODB_URI, matching the existing auth integration test. Each test
@@ -19,10 +20,23 @@ const fixtureIsbns = [
     "9780000000004"
 ];
 let createdBookId;
+const sellerName = "Book Seller Integration";
+const sellerEmail = `seller${Date.now()}@example.com`;
+let sellerToken;
 
 describe("Catalogue API Integration Tests", () => {
     beforeAll(async () => {
         await mongoose.connect(process.env.MONGODB_URI);
+        await request(app).post("/api/auth/register").send({
+            name: sellerName,
+            email: sellerEmail,
+            password: "Test@12345"
+        });
+        const loginResponse = await request(app).post("/api/auth/login").send({
+            email: sellerEmail,
+            password: "Test@12345"
+        });
+        sellerToken = loginResponse.body.token;
         await Book.create([
             {
                 title: "Cheap Available Book",
@@ -65,12 +79,28 @@ describe("Catalogue API Integration Tests", () => {
 
     afterAll(async () => {
         await Book.deleteMany({ isbn: { $in: [testIsbn, ...fixtureIsbns] } });
+        await User.deleteOne({ email: sellerEmail });
         await mongoose.connection.close();
+    });
+
+    test("POST /api/books rejects unauthenticated requests", async () => {
+        const response = await request(app)
+            .post("/api/books")
+            .send({
+                title: "Unauthenticated",
+                author: "Tester",
+                isbn: testIsbn,
+                category: "Testing",
+                price: 199
+            });
+
+        expect(response.statusCode).toBe(401);
     });
 
     test("POST /api/books creates a book", async () => {
         const response = await request(app)
             .post("/api/books")
+            .set("Authorization", `Bearer ${sellerToken}`)
             .send({
                 title: "Integration Test Book",
                 author: "Tester",
@@ -78,12 +108,14 @@ describe("Catalogue API Integration Tests", () => {
                 category: "Testing",
                 price: 199,
                 condition: "New",
+                seller: "Client Supplied Seller",
                 stock: 3
             });
 
         expect(response.statusCode).toBe(201);
         expect(response.body.message).toBe("Book created successfully");
         expect(response.body.book.title).toBe("Integration Test Book");
+        expect(response.body.book.seller).toBe(sellerName);
 
         createdBookId = response.body.book._id;
     });
@@ -91,6 +123,7 @@ describe("Catalogue API Integration Tests", () => {
     test("POST /api/books rejects missing required fields", async () => {
         const response = await request(app)
             .post("/api/books")
+            .set("Authorization", `Bearer ${sellerToken}`)
             .send({ title: "No author or isbn" });
 
         expect(response.statusCode).toBe(400);
@@ -99,6 +132,7 @@ describe("Catalogue API Integration Tests", () => {
     test("POST /api/books rejects a duplicate ISBN", async () => {
         const response = await request(app)
             .post("/api/books")
+            .set("Authorization", `Bearer ${sellerToken}`)
             .send({
                 title: "Duplicate",
                 author: "Tester",
