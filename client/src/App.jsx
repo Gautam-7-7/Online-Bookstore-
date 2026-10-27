@@ -1,45 +1,124 @@
-import { Routes, Route, Link } from "react-router-dom";
-import CataloguePage from "./pages/CataloguePage.jsx";
-import BookDetailsPage from "./pages/BookDetailsPage.jsx";
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { registerUser, saveToken } from "../api/auth.js";
 
-// App shell: a simple header with navigation, then the routed pages.
-//   /            -> catalogue (listing, search, filter, sort)
-//   /books/:id   -> single book detail page
-export default function App() {
+export default function RegisterPage({ onRegister }) {
+    const navigate = useNavigate();
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: ""
+    });
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const handleChange = (event) => {
+        const { name, value } = event.target;
+        setForm((current) => ({ ...current, [name]: value }));
+    };
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        const trimmedName = form.name.trim();
+        if (!trimmedName || !form.email || !form.password) {
+            setError("Please fill in all required fields.");
+            return;
+        }
+
+        if (form.password !== form.confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+
+        setLoading(true);
+        setError("");
+
+        try {
+            const result = await registerUser({
+                name: trimmedName,
+                email: form.email,
+                password: form.password
+            });
+
+            if (result?.token) {
+                saveToken(result.token);
+                onRegister(result.token);
+            }
+
+            navigate("/");
+        } catch (err) {
+            setError(err.message || "Unable to create your account.");
+        } finally {
+            setLoading(false);
+        }
+    };
+
     return (
-        <div className="app">
-            <header className="site-header">
-                <div className="site-header__inner">
-                    <Link to="/" className="site-header__brand">
-                        📚 Online Bookstore
-                    </Link>
-                    <nav>
-                        <Link to="/" className="site-header__link">
-                            Catalogue
-                        </Link>
-                    </nav>
-                </div>
-            </header>
+        <div className="auth-page">
+            <div className="auth-card">
+                <h1>Create an account</h1>
+                <p className="auth-card__subtitle">
+                    Passwords must include uppercase, lowercase, numbers, and symbols.
+                </p>
 
-            <main className="site-main">
-                <Routes>
-                    <Route path="/" element={<CataloguePage />} />
-                    <Route path="/books/:id" element={<BookDetailsPage />} />
-                    <Route
-                        path="*"
-                        element={
-                            <p className="state state--empty">
-                                Page not found.{" "}
-                                <Link to="/">Back to catalogue</Link>
-                            </p>
-                        }
-                    />
-                </Routes>
-            </main>
+                <form onSubmit={handleSubmit} className="auth-form">
+                    <label className="field">
+                        <span className="field__label">Full name</span>
+                        <input
+                            type="text"
+                            name="name"
+                            value={form.name}
+                            onChange={handleChange}
+                            placeholder="Jane Doe"
+                        />
+                    </label>
 
-            <footer className="site-footer">
-                Online Bookstore — SE Mini Project, Team 12
-            </footer>
+                    <label className="field">
+                        <span className="field__label">Email</span>
+                        <input
+                            type="email"
+                            name="email"
+                            value={form.email}
+                            onChange={handleChange}
+                            placeholder="you@example.com"
+                        />
+                    </label>
+
+                    <label className="field">
+                        <span className="field__label">Password</span>
+                        <input
+                            type="password"
+                            name="password"
+                            value={form.password}
+                            onChange={handleChange}
+                            placeholder="Create a strong password"
+                        />
+                    </label>
+
+                    <label className="field">
+                        <span className="field__label">Confirm password</span>
+                        <input
+                            type="password"
+                            name="confirmPassword"
+                            value={form.confirmPassword}
+                            onChange={handleChange}
+                            placeholder="Re-enter your password"
+                        />
+                    </label>
+
+                    {error && <p className="auth-error">{error}</p>}
+
+                    <button type="submit" className="btn btn--primary" disabled={loading}>
+                        {loading ? "Creating account..." : "Create account"}
+                    </button>
+                </form>
+
+                <p className="auth-link-row">
+                    Already have an account? <Link to="/login">Log in</Link>
+                </p>
+            </div>
         </div>
     );
 }

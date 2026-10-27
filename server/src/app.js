@@ -6,15 +6,12 @@ const bookRoutes = require("./routes/bookRoutes");
 
 const app = express();
 
-// Middleware
 app.use(cors());
 app.use(express.json());
 
-// Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
 
-// Test route
 app.get("/", (req, res) => {
     res.json({
         message: "Online Bookstore API is running"
