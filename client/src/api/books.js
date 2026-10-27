@@ -48,3 +48,22 @@ export const getBookById = async (id) => {
 
     return response.json();
 };
+
+// POST /api/books. The backend derives seller from the authenticated user.
+export const createBook = async (book, token) => {
+    const response = await fetch(`${API_BASE}/api/books`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(book)
+    });
+
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        throw new Error(data.message || "Failed to create book");
+    }
+
+    return data;
+};

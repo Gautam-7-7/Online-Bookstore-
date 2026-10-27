@@ -65,6 +65,27 @@ a {
     color: var(--accent);
 }
 
+.site-header nav {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.site-header__user {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+
+.site-header__button {
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: var(--accent);
+    font: inherit;
+    font-weight: 500;
+    cursor: pointer;
+}
+
 /* Main / footer */
 .site-main {
     flex: 1;
@@ -123,6 +144,25 @@ a {
     background: var(--surface);
     font-size: 0.9rem;
     color: var(--text);
+}
+
+.field input,
+.field textarea {
+    width: 100%;
+    padding: 9px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+}
+
+.field input:focus,
+.field textarea:focus,
+.field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(47, 91, 234, 0.15);
 }
 
 /* Search bar */
@@ -411,6 +451,61 @@ a {
     color: #374151;
 }
 
+/* Account and listing forms */
+.form-page {
+    max-width: 520px;
+    margin: 0 auto;
+}
+
+.form-page--wide {
+    max-width: 760px;
+}
+
+.form-page h1 {
+    margin: 0 0 16px;
+}
+
+.form-page__hint,
+.form-page__switch {
+    color: var(--muted);
+}
+
+.form-page__switch a {
+    color: var(--accent);
+    font-weight: 600;
+}
+
+.form-page__error {
+    color: var(--out-stock);
+}
+
+.form-page__notice {
+    color: var(--in-stock);
+}
+
+.form-card {
+    display: grid;
+    gap: 16px;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+}
+
+.form-card--grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.form-card__full {
+    grid-column: 1 / -1;
+}
+
+.form-card button:disabled {
+    opacity: 0.65;
+    cursor: wait;
+}
+
 /* Responsive */
 @media (max-width: 680px) {
     .book-details__layout {
@@ -424,5 +519,25 @@ a {
     .catalogue__controls {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    .site-header__inner {
+        height: auto;
+        min-height: 60px;
+        align-items: flex-start;
+        flex-direction: column;
+        justify-content: center;
+        gap: 8px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+
+    .site-header nav {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .form-card--grid {
+        grid-template-columns: 1fr;
     }
 }
