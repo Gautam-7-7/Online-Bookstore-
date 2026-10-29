@@ -17,6 +17,43 @@ const request = async (path, token, options = {}) => {
     return data;
 };
 
+export const getBookReviews = (bookId) =>
+    request(`/api/reviews/books/${encodeURIComponent(bookId)}`);
+
+export const getReviewEligibility = (bookId, token) =>
+    request(
+        `/api/reviews/eligibility/${encodeURIComponent(bookId)}`,
+        token
+    );
+
+export const submitBookReview = (review, token) =>
+    request("/api/reviews", token, {
+        method: "POST",
+        body: JSON.stringify(review)
+    });
+
+export const getOrders = (token) => request("/api/orders", token);
+
+export const getSellerDashboard = (token) =>
+    request("/api/books/seller/dashboard", token);
+
+export const getSellerListings = (token) =>
+    request("/api/books/mine", token);
+
+export const getSellerListing = (bookId, token) =>
+    request(`/api/books/mine/${encodeURIComponent(bookId)}`, token);
+
+export const updateSellerListing = (bookId, values, token) =>
+    request(`/api/books/${encodeURIComponent(bookId)}`, token, {
+        method: "PUT",
+        body: JSON.stringify(values)
+    });
+
+export const removeSellerListing = (bookId, token) =>
+    request(`/api/books/${encodeURIComponent(bookId)}`, token, {
+        method: "DELETE"
+    });
+
 const loadRazorpayCheckout = () =>
     new Promise((resolve, reject) => {
         if (window.Razorpay) {

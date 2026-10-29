@@ -140,8 +140,33 @@ user.
   optional `occurredAt`, authenticated by `x-shipping-webhook-secret`; stages
   must advance in order.
 - `POST /api/reviews` — submit a 1–5 star review only for a delivered,
-  successfully paid order line. `GET /api/reviews/books/:bookId` and
+  successfully paid order line. `GET /api/reviews/eligibility/:bookId` (JWT)
+  returns eligible delivered orders; `GET /api/reviews/books/:bookId` and
   `GET /api/reviews/sellers/:seller` return reviews and aggregate scores.
+
+Authenticated sellers can edit and manage only listings they own:
+
+- `GET /api/books/mine` and `GET /api/books/mine/:id` — list or load the
+  seller's own listings, including removed listings in the dashboard.
+- `PUT /api/books/:id` — update listing details; ownership and editable fields
+  are checked by the server.
+- `DELETE /api/books/:id` — soft-remove a listing from the public catalogue
+  while preserving its references in orders and reviews.
+- `GET /api/books/seller/dashboard` — listing totals, available stock,
+  completed-order sales/revenue, and seller review aggregate.
+
+Listing creation and editing normalize ISBN formatting and flag duplicate ISBN
+conflicts rather than allowing duplicate entries.
+
+Existing listings and order items predate seller ownership IDs. Preview the
+safe legacy mapping before applying it; only unique exact seller-name matches
+are assigned, while ambiguous or unmatched names are reported and left alone:
+
+```powershell
+cd server
+npm run migrate:listing-owners
+npm run migrate:listing-owners -- --apply
+```
 
 ### Razorpay setup and compliance boundary
 

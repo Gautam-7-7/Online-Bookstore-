@@ -3,8 +3,10 @@ import { AuthProvider, useAuth } from "./auth/AuthContext.jsx";
 import CataloguePage from "./pages/CataloguePage.jsx";
 import BookDetailsPage from "./pages/BookDetailsPage.jsx";
 import CreateBookPage from "./pages/CreateBookPage.jsx";
+import EditListingPage from "./pages/EditListingPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
+import SellerDashboardPage from "./pages/SellerDashboardPage.jsx";
 
 function RequireAuth({ children }) {
     const { user } = useAuth();
@@ -33,6 +35,9 @@ function AppContent() {
                         </Link>
                         {user ? (
                             <>
+                                <Link to="/seller/dashboard" className="site-header__link">
+                                    Seller dashboard
+                                </Link>
                                 <Link to="/sell" className="site-header__link">
                                     List a book
                                 </Link>
@@ -61,6 +66,22 @@ function AppContent() {
                     <Route path="/books/:id" element={<BookDetailsPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/login" element={<LoginPage />} />
+                    <Route
+                        path="/seller/dashboard"
+                        element={
+                            <RequireAuth>
+                                <SellerDashboardPage />
+                            </RequireAuth>
+                        }
+                    />
+                    <Route
+                        path="/sell/:id/edit"
+                        element={
+                            <RequireAuth>
+                                <EditListingPage />
+                            </RequireAuth>
+                        }
+                    />
                     <Route
                         path="/sell"
                         element={

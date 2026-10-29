@@ -38,6 +38,14 @@ describe("catalogue frontend", () => {
         vi.restoreAllMocks();
         localStorage.clear();
         global.fetch = vi.fn((url, options = {}) => {
+            if (url.endsWith("/api/books/book-1") && options.method === "PUT") {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ book: { ...books[0], title: "Updated Title" } })
+                });
+            }
+
             if (url.endsWith("/api/books/book-1")) {
                 return Promise.resolve({
                     ok: true,
@@ -66,6 +74,66 @@ describe("catalogue frontend", () => {
                         token: "signed-token",
                         user: { id: "user-1", name: "Reader", email: "reader@example.com" }
                     })
+                });
+            }
+
+            if (url.endsWith("/api/books/seller/dashboard")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        seller: "Reader",
+                        listings: { totalListings: 1, activeListings: 1, totalStock: 3 },
+                        sales: { orders: 1, unitsSold: 2, revenue: 1080 },
+                        rating: { averageRating: 4.5, reviewCount: 2 }
+                    })
+                });
+            }
+
+            if (url.endsWith("/api/books/mine")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ books: [{ ...books[0], _id: "book-1", isActive: true }] })
+                });
+            }
+
+            if (url.endsWith("/api/books/mine/book-1")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ book: books[0] })
+                });
+            }
+
+            if (url.endsWith("/api/reviews/books/book-1")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        reviews: [],
+                        averageRating: 0,
+                        reviewCount: 0
+                    })
+                });
+            }
+
+            if (url.endsWith("/api/reviews/eligibility/book-1")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        hasReviewed: false,
+                        eligibleOrders: [{ _id: "delivered-order", createdAt: "2026-10-01" }]
+                    })
+                });
+            }
+
+            if (url.endsWith("/api/reviews") && options.method === "POST") {
+                return Promise.resolve({
+                    ok: true,
+                    status: 201,
+                    json: async () => ({ review: { _id: "review-1" } })
                 });
             }
 
@@ -263,5 +331,83 @@ describe("catalogue frontend", () => {
         });
         expect(JSON.parse(requestOptions.body)).not.toHaveProperty("seller");
         expect(localStorage.getItem("online-bookstore-auth")).toContain("signed-token");
+    });
+
+    test("shows seller listing and dashboard performance", async () => {
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "signed-token",
+                user: { id: "seller-1", name: "Reader", email: "reader@example.com" }
+            })
+        );
+        renderApp(["/seller/dashboard"]);
+
+        expect(await screen.findByRole("heading", { name: "Seller dashboard" })).toBeInTheDocument();
+        expect(screen.getByText("₹1080.00")).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "Clean Code" })).toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "Edit" })).toHaveAttribute(
+            "href",
+            "/sell/book-1/edit"
+        );
+    });
+
+    test("edits only listing fields from the seller dashboard flow", async () => {
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "signed-token",
+                user: { id: "seller-1", name: "Reader", email: "reader@example.com" }
+            })
+        );
+        renderApp(["/sell/book-1/edit"]);
+
+        expect(await screen.findByRole("heading", { name: "Edit listing" })).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText("Title"), {
+            target: { value: "Updated Title" }
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+        expect(await screen.findByRole("heading", { name: "Seller dashboard" })).toBeInTheDocument();
+        const [requestUrl, requestOptions] = global.fetch.mock.calls.find(
+            ([url, options]) => url.endsWith("/api/books/book-1") && options?.method === "PUT"
+        );
+        expect(requestUrl).toBe("/api/books/book-1");
+        expect(JSON.parse(requestOptions.body)).toMatchObject({
+            title: "Updated Title",
+            author: "Robert Martin",
+            price: 540
+        });
+        expect(JSON.parse(requestOptions.body)).not.toHaveProperty("sellerId");
+    });
+
+    test("submits a review only when an authenticated delivered order is eligible", async () => {
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "signed-token",
+                user: { id: "buyer-1", name: "Reader", email: "reader@example.com" }
+            })
+        );
+        renderApp(["/books/book-1"]);
+
+        expect(await screen.findByRole("heading", { name: "Review this book" })).toBeInTheDocument();
+        fireEvent.change(screen.getByLabelText("Your review"), {
+            target: { value: "A thoughtful and enjoyable read." }
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Submit verified review" }));
+
+        await waitFor(() => {
+            const reviewRequest = global.fetch.mock.calls.find(
+                ([url, options]) => url.endsWith("/api/reviews") && options?.method === "POST"
+            );
+            expect(reviewRequest).toBeDefined();
+            expect(JSON.parse(reviewRequest[1].body)).toMatchObject({
+                orderId: "delivered-order",
+                bookId: "book-1",
+                rating: 5,
+                text: "A thoughtful and enjoyable read."
+            });
+        });
     });
 });
