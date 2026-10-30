@@ -20,7 +20,17 @@ describe("Commerce route authentication", () => {
         ["GET", "/api/orders"],
         ["POST", "/api/orders/507f1f77bcf86cd799439011/cancellation"],
         ["POST", "/api/orders/507f1f77bcf86cd799439011/return"],
-        ["POST", "/api/reviews"]
+        ["POST", "/api/reviews"],
+        ["GET", "/api/reviews/eligibility/507f1f77bcf86cd799439011"],
+        ["GET", "/api/books/seller/dashboard"],
+        ["GET", "/api/books/mine"],
+        ["GET", "/api/books/mine/507f1f77bcf86cd799439011"],
+        ["PUT", "/api/books/507f1f77bcf86cd799439011"],
+        ["DELETE", "/api/books/507f1f77bcf86cd799439011"],
+        ["GET", "/api/addresses"],
+        ["POST", "/api/addresses"],
+        ["PATCH", "/api/addresses/507f1f77bcf86cd799439011/default"],
+        ["DELETE", "/api/addresses/507f1f77bcf86cd799439011"]
     ])("%s %s requires authentication", async (method, path) => {
         const response = await request(app)[method.toLowerCase()](path).send({});
         expect(response.statusCode).toBe(401);

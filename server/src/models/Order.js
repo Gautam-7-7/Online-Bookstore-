@@ -57,6 +57,11 @@ const orderSchema = new mongoose.Schema(
                 },
                 title: { type: String, required: true },
                 seller: { type: String, required: true },
+                sellerId: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "User",
+                    default: null
+                },
                 quantity: {
                     type: Number,
                     required: true,

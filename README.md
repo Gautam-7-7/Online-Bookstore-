@@ -1,17 +1,17 @@
 # Online Bookstore — Team 12
 
-A college Software Engineering mini-project with an Express/Mongoose API and a React/Vite client. The working frontend supports the public catalogue, search, filters, sorting, book details, registration, login, and authenticated book listing.
+A college Software Engineering mini-project with an Express/Mongoose API and a React/Vite client. The frontend supports public catalogue browsing, search, filters and sorting; registration and login; seller listing management; and buyer cart, coupon, shipping-address checkout, order tracking, cancellation/return requests, and verified-purchase reviews.
 
 ## Repository status (inspected 29 October 2026)
 
-The authentication backend provides registration and login, bcrypt password hashing, JWT issuance, and failed-login tracking/temporary lockout. The book API provides a searchable, filterable, sortable, paginated public catalogue, book details, and book creation. Creating a book now requires a valid login token; the backend derives the displayed seller name from that token rather than accepting a client-provided seller. The backend now also provides persistent carts, server-validated coupons, token-only payment checkout, buyer order tracking, and verified-purchase reviews with aggregate book/seller ratings.
+The authentication backend provides registration and login, bcrypt password hashing, JWT issuance, and failed-login tracking/temporary lockout. Sellers can manage their own listings and view sales/rating summaries. Buyers can persist carts, apply server-validated coupons, select saved shipping addresses, check out through Razorpay, track orders, request cancellation/returns, and review books after a delivered purchase.
 
-Seller roles, seller-specific listing management, edit/deactivate flows, admin coupon management, invoice PDFs, and client checkout/tracking/review screens remain unimplemented. Any authenticated user can currently create a listing. The repository has separate backend Jest and frontend Vitest/build scripts; it has no root-level package manifest.
+The project does not currently include password reset/profile management, administrator moderation/coupon-management screens, or downloadable invoice PDFs. Live Razorpay payments require test/live credentials and webhook configuration. The repository has separate backend Jest and frontend Vitest/build scripts; it has no root-level package manifest.
 
 ### Sprint 1 progress (19–23 October 2026)
 
-- **Implemented:** authentication, catalogue APIs, catalogue and book detail pages, and login-protected book creation.
-- **Still outstanding:** seller roles and listing management, administration workflows, invoice generation, and frontend checkout/tracking/review screens.
+- **Implemented:** authentication, catalogue, seller listing create/edit/deactivate and dashboard, cart, coupon validation, shipping-address selection, payment checkout UI, buyer order tracking/cancellation/returns, and verified-buyer book reviews.
+- **Still outstanding:** password reset/profile management, administration workflows, and invoice generation.
 - **Project tracking:** no GitHub Issues or GitHub Projects board were visible during inspection. The submitted Part-2 deliverables call for a linked project, SRS-based backlog, estimates, owners, and two sprint plans; those items still need team tracking.
 - **Sprint 2:** scheduled for 26–30 October 2026 in the submitted deliverables.
 
@@ -110,6 +110,24 @@ user.
   active-listing state are checked by the server.
 - `DELETE /api/cart/items/:bookId` and `DELETE /api/cart` — remove a line or
   clear the cart.
+- `GET /api/addresses`, `POST /api/addresses`,
+  `PATCH /api/addresses/:addressId/default`, and
+  `DELETE /api/addresses/:addressId` — manage up to ten saved, buyer-owned
+  shipping addresses. The first address becomes the default automatically.
+- In the customer UI, signed-in buyers can add books to their cart, review the
+  cart, and select a saved shipping address or save a new one at `/checkout`.
+  The selected address is sent with the idempotent checkout request and stored
+  as an order snapshot; deleting or changing a saved address does not mutate
+  existing orders.
+- Checkout validates coupon codes against the buyer's current server-side cart
+  before including an accepted code in the payment-order request. After payment,
+  buyers can use `/orders` to view tracking history and request an eligible
+  cancellation or return; eligibility and refund processing remain server-side.
+- Sellers can manage their own listings at `/seller/dashboard`, edit at
+  `/sell/:id/edit`, and create a listing at `/sell`. The backend rejects
+  normalized duplicate ISBNs and scopes listing edits/removal to the owner.
+- Public book details show verified reviews. An authenticated buyer can submit
+  one review only after a delivered purchase of that book.
 - `POST /api/coupons/validate` — validate `{ "code": "..." }` against the
   current server-side cart. Coupons are provisioned as `Coupon` records.
 - `POST /api/orders/checkout` — submit a shipping address, optional coupon code,
@@ -140,8 +158,33 @@ user.
   optional `occurredAt`, authenticated by `x-shipping-webhook-secret`; stages
   must advance in order.
 - `POST /api/reviews` — submit a 1–5 star review only for a delivered,
-  successfully paid order line. `GET /api/reviews/books/:bookId` and
+  successfully paid order line. `GET /api/reviews/eligibility/:bookId` (JWT)
+  returns eligible delivered orders; `GET /api/reviews/books/:bookId` and
   `GET /api/reviews/sellers/:seller` return reviews and aggregate scores.
+
+Authenticated sellers can edit and manage only listings they own:
+
+- `GET /api/books/mine` and `GET /api/books/mine/:id` — list or load the
+  seller's own listings, including removed listings in the dashboard.
+- `PUT /api/books/:id` — update listing details; ownership and editable fields
+  are checked by the server.
+- `DELETE /api/books/:id` — soft-remove a listing from the public catalogue
+  while preserving its references in orders and reviews.
+- `GET /api/books/seller/dashboard` — listing totals, available stock,
+  completed-order sales/revenue, and seller review aggregate.
+
+Listing creation and editing normalize ISBN formatting and flag duplicate ISBN
+conflicts rather than allowing duplicate entries.
+
+Existing listings and order items predate seller ownership IDs. Preview the
+safe legacy mapping before applying it; only unique exact seller-name matches
+are assigned, while ambiguous or unmatched names are reported and left alone:
+
+```powershell
+cd server
+npm run migrate:listing-owners
+npm run migrate:listing-owners -- --apply
+```
 
 ### Razorpay setup and compliance boundary
 

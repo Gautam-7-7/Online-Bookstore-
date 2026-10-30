@@ -66,13 +66,17 @@ const bookSchema = new mongoose.Schema(
             default: "Good"
         },
 
-        // Seller shown on the detail page (BOOK-F-007). Kept as a plain
-        // display string for Sprint 1: full seller accounts / listing
-        // ownership are a separate feature area owned with Gautam.
+        // Seller name is used for display; sellerId enforces listing ownership.
         seller: {
             type: String,
             trim: true,
             default: "Unknown Seller"
+        },
+        sellerId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+            index: true
         },
 
         coverImage: {
