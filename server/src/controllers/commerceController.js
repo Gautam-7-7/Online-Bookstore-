@@ -27,7 +27,8 @@ const {
     recalculateSellerRating
 } = require("../services/ratings");
 
-const POPULATED_CART_FIELDS = "title author isbn price seller coverImage stock isActive";
+const POPULATED_CART_FIELDS =
+    "title author isbn price seller sellerId coverImage stock isActive";
 const NEXT_ORDER_STATUS = {
     Placed: "Shipped",
     Shipped: "Out for Delivery",
@@ -491,6 +492,7 @@ const checkout = async (req, res) => {
                 book: item.book._id,
                 title: item.book.title,
                 seller: item.book.seller,
+                sellerId: item.book.sellerId || null,
                 quantity: item.quantity,
                 unitPrice: item.book.price
             }));
@@ -1148,6 +1150,34 @@ const getBookReviews = async (req, res) => {
     }
 };
 
+const getReviewEligibility = async (req, res) => {
+    try {
+        if (!isValidObjectId(req.params.bookId)) {
+            return res.status(400).json({ message: "Invalid book ID" });
+        }
+        const bookId = req.params.bookId.toLowerCase();
+        const [existingReview, eligibleOrders] = await Promise.all([
+            Review.findOne({ buyer: req.user.id, book: bookId }).select("_id"),
+            Order.find({
+                buyer: req.user.id,
+                status: "Delivered",
+                "payment.status": "succeeded",
+                "items.book": bookId
+            })
+                .select("_id createdAt")
+                .sort({ createdAt: -1 })
+        ]);
+        return res.status(200).json({
+            hasReviewed: Boolean(existingReview),
+            eligibleOrders: existingReview ? [] : eligibleOrders
+        });
+    } catch (error) {
+        return res.status(500).json({
+            message: "Failed to verify review eligibility"
+        });
+    }
+};
+
 const getSellerReviews = async (req, res) => {
     try {
         const seller = req.params.seller.trim();
@@ -1174,6 +1204,7 @@ module.exports = {
     checkout,
     clearCart,
     getBookReviews,
+    getReviewEligibility,
     getCart,
     getOrder,
     getSellerReviews,

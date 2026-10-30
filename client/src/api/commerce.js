@@ -17,6 +17,81 @@ const request = async (path, token, options = {}) => {
     return data;
 };
 
+export const getBookReviews = (bookId) =>
+    request(`/api/reviews/books/${encodeURIComponent(bookId)}`);
+
+export const getReviewEligibility = (bookId, token) =>
+    request(
+        `/api/reviews/eligibility/${encodeURIComponent(bookId)}`,
+        token
+    );
+
+export const submitBookReview = (review, token) =>
+    request("/api/reviews", token, {
+        method: "POST",
+        body: JSON.stringify(review)
+    });
+
+export const getOrders = (token) => request("/api/orders", token);
+
+export const getSellerDashboard = (token) =>
+    request("/api/books/seller/dashboard", token);
+
+export const getSellerListings = (token) =>
+    request("/api/books/mine", token);
+
+export const getSellerListing = (bookId, token) =>
+    request(`/api/books/mine/${encodeURIComponent(bookId)}`, token);
+
+export const updateSellerListing = (bookId, values, token) =>
+    request(`/api/books/${encodeURIComponent(bookId)}`, token, {
+        method: "PUT",
+        body: JSON.stringify(values)
+    });
+
+export const removeSellerListing = (bookId, token) =>
+    request(`/api/books/${encodeURIComponent(bookId)}`, token, {
+        method: "DELETE"
+    });
+
+export const getCart = (token) => request("/api/cart", token);
+
+export const validateCoupon = (code, token) =>
+    request("/api/coupons/validate", token, {
+        method: "POST",
+        body: JSON.stringify({ code })
+    });
+
+export const addCartItem = (bookId, quantity, token) =>
+    request("/api/cart/items", token, {
+        method: "POST",
+        body: JSON.stringify({ bookId, quantity })
+    });
+
+export const removeCartItem = (bookId, token) =>
+    request(`/api/cart/items/${encodeURIComponent(bookId)}`, token, {
+        method: "DELETE"
+    });
+
+export const getShippingAddresses = (token) =>
+    request("/api/addresses", token);
+
+export const createShippingAddress = (address, token) =>
+    request("/api/addresses", token, {
+        method: "POST",
+        body: JSON.stringify(address)
+    });
+
+export const setDefaultShippingAddress = (addressId, token) =>
+    request(`/api/addresses/${encodeURIComponent(addressId)}/default`, token, {
+        method: "PATCH"
+    });
+
+export const deleteShippingAddress = (addressId, token) =>
+    request(`/api/addresses/${encodeURIComponent(addressId)}`, token, {
+        method: "DELETE"
+    });
+
 const loadRazorpayCheckout = () =>
     new Promise((resolve, reject) => {
         if (window.Razorpay) {
