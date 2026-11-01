@@ -11,16 +11,20 @@ const authenticate = async (req, res, next) => {
 
     try {
         const payload = jwt.verify(token, process.env.JWT_SECRET);
-        const user = await User.findById(payload.userId).select("name email");
+        const user = await User.findById(payload.userId).select(
+            "name email role isSuspended isSellerVerified"
+        );
 
-        if (!user) {
+        if (!user || user.isSuspended) {
             return res.status(401).json({ message: "Invalid authentication token" });
         }
 
         req.user = {
             id: user._id,
             name: user.name,
-            email: user.email
+            email: user.email,
+            role: user.role,
+            isSellerVerified: user.isSellerVerified
         };
         return next();
     } catch (error) {

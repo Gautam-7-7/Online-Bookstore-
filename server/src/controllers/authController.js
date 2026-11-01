@@ -1,19 +1,31 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
+const AuditLog = require("../models/AuditLog");
+const PASSWORD_PATTERN =
+    /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,128}$/;
 
 // Register
 const register = async (req, res) => {
     try {
-        const { name, email, password } = req.body;
+        const { name, email, password } = req.body || {};
+        const normalizedEmail =
+            typeof email === "string" ? email.trim().toLowerCase() : "";
 
-        if (!name || !email || !password) {
+        if (
+            typeof name !== "string" ||
+            !name.trim() ||
+            name.trim().length > 100 ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail) ||
+            typeof password !== "string" ||
+            !PASSWORD_PATTERN.test(password)
+        ) {
             return res.status(400).json({
-                message: "Name, email and password are required"
+                message: "A valid name and email and a 10+ character password with uppercase, lowercase, number and symbol are required"
             });
         }
 
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ email: normalizedEmail });
 
         if (existingUser) {
             return res.status(409).json({
@@ -25,7 +37,7 @@ const register = async (req, res) => {
 
         const user = await User.create({
             name,
-            email,
+            email: normalizedEmail,
             password: hashedPassword
         });
 
@@ -34,13 +46,13 @@ const register = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role
             }
         });
     } catch (error) {
         res.status(500).json({
-            message: "Registration failed",
-            error: error.message
+            message: "Registration failed"
         });
     }
 };
@@ -56,11 +68,17 @@ const login = async (req, res) => {
             });
         }
 
-        const user = await User.findOne({ email });
+        const user = await User.findOne({ email: email.toLowerCase().trim() });
 
         if (!user) {
             return res.status(401).json({
                 message: "Invalid email or password"
+            });
+        }
+
+        if (user.isSuspended) {
+            return res.status(403).json({
+                message: "This account is suspended. Contact support for assistance."
             });
         }
 
@@ -84,7 +102,16 @@ const login = async (req, res) => {
             user.failedLoginAttempts += 1;
 
             if (user.failedLoginAttempts >= 5) {
-                user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+                if (!user.lockUntil || user.lockUntil <= Date.now()) {
+                    user.lockUntil = new Date(Date.now() + 15 * 60 * 1000);
+                    await AuditLog.create({
+                        actor: user._id,
+                        action: "auth.account_locked",
+                        targetType: "user",
+                        targetId: user._id.toString(),
+                        details: { lockUntil: user.lockUntil, source: "failed_login_attempts" }
+                    });
+                }
             }
 
             await user.save();
@@ -116,13 +143,13 @@ const login = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
-                email: user.email
+                email: user.email,
+                role: user.role
             }
         });
     } catch (error) {
         res.status(500).json({
-            message: "Login failed",
-            error: error.message
+            message: "Login failed"
         });
     }
 };

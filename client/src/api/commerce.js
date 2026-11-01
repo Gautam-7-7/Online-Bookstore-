@@ -32,7 +32,25 @@ export const submitBookReview = (review, token) =>
         body: JSON.stringify(review)
     });
 
+export const reportBook = (bookId, reason, token) =>
+    request(`/api/reports/books/${encodeURIComponent(bookId)}`, token, {
+        method: "POST",
+        body: JSON.stringify({ reason })
+    });
+
 export const getOrders = (token) => request("/api/orders", token);
+
+export const downloadOrderInvoice = async (orderId, token) => {
+    const response = await fetch(
+        `${API_BASE}/api/orders/${encodeURIComponent(orderId)}/invoice`,
+        { headers: { Authorization: `Bearer ${token}` } }
+    );
+    if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to download invoice");
+    }
+    return response.blob();
+};
 
 export const getSellerDashboard = (token) =>
     request("/api/books/seller/dashboard", token);

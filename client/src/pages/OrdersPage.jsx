@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
     getOrders,
+    downloadOrderInvoice,
     requestCancellation,
     requestReturn
 } from "../api/commerce.js";
@@ -18,6 +19,8 @@ export default function OrdersPage() {
     const [activeRequest, setActiveRequest] = useState(null);
     const [reason, setReason] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [invoiceError, setInvoiceError] = useState("");
+    const [downloadingInvoice, setDownloadingInvoice] = useState("");
 
     const loadOrders = useCallback(async () => {
         const data = await getOrders(token);
@@ -78,6 +81,26 @@ export default function OrdersPage() {
         }
     };
 
+    const handleDownloadInvoice = async (order) => {
+        setInvoiceError("");
+        setDownloadingInvoice(order._id);
+        try {
+            const blob = await downloadOrderInvoice(order._id, token);
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `invoice-${order._id}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        } catch (requestError) {
+            setInvoiceError(requestError.message);
+        } finally {
+            setDownloadingInvoice("");
+        }
+    };
+
     if (loading) {
         return <p className="state state--loading">Loading your orders…</p>;
     }
@@ -87,6 +110,7 @@ export default function OrdersPage() {
             <h1>Your orders</h1>
             <p className="form-page__hint">Review order status and delivery updates.</p>
             {error && <p className="form-page__error" role="alert">{error}</p>}
+            {invoiceError && <p className="form-page__error" role="alert">{invoiceError}</p>}
             {!orders.length ? (
                 <p className="state state--empty">You have not placed any orders yet.</p>
             ) : (
@@ -163,9 +187,18 @@ export default function OrdersPage() {
                                     </p>
                                 )}
 
-                                {!requestPending && paymentSucceeded && (
+                                {paymentSucceeded && (
                                     <div className="order-card__actions">
-                                        {order.status === "Placed" && (
+                                        <button
+                                            className="btn"
+                                            disabled={downloadingInvoice === order._id}
+                                            onClick={() => handleDownloadInvoice(order)}
+                                        >
+                                            {downloadingInvoice === order._id
+                                                ? "Preparing invoice…"
+                                                : "Download invoice"}
+                                        </button>
+                                        {!requestPending && order.status === "Placed" && (
                                             <button
                                                 className="btn btn--danger"
                                                 onClick={() => {
@@ -176,7 +209,7 @@ export default function OrdersPage() {
                                                 Request cancellation
                                             </button>
                                         )}
-                                        {order.status === "Delivered" && (
+                                        {!requestPending && order.status === "Delivered" && (
                                             <button
                                                 className="btn"
                                                 onClick={() => {

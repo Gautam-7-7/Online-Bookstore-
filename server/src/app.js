@@ -9,6 +9,10 @@ const orderRoutes = require("./routes/orderRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const shippingAddressRoutes = require("./routes/shippingAddressRoutes");
+const accountRoutes = require("./routes/accountRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const reportRoutes = require("./routes/reportRoutes");
+const invoiceRoutes = require("./routes/invoiceRoutes");
 
 const app = express();
 
@@ -22,10 +26,14 @@ app.use(express.json({ limit: "100kb" }));
 
 // Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/account", accountRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/coupons", couponRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/orders", invoiceRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/payments", paymentRoutes);
 app.use("/api/addresses", shippingAddressRoutes);

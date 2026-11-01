@@ -97,6 +97,11 @@ const orderSchema = new mongoose.Schema(
                 enum: ["pending", "succeeded", "failed", "refunded"],
                 default: "pending"
             },
+            invoiceNumber: {
+                type: String,
+                unique: true,
+                sparse: true
+            },
             brand: { type: String, default: null },
             last4: { type: String, match: /^\d{4}$/, default: null }
         },

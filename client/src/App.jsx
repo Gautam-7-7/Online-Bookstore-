@@ -6,9 +6,13 @@ import CartPage from "./pages/CartPage.jsx";
 import CheckoutPage from "./pages/CheckoutPage.jsx";
 import CreateBookPage from "./pages/CreateBookPage.jsx";
 import EditListingPage from "./pages/EditListingPage.jsx";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage.jsx";
 import LoginPage from "./pages/LoginPage.jsx";
+import AdminDashboardPage from "./pages/AdminDashboardPage.jsx";
 import OrdersPage from "./pages/OrdersPage.jsx";
+import ProfilePage from "./pages/ProfilePage.jsx";
 import RegisterPage from "./pages/RegisterPage.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import SellerDashboardPage from "./pages/SellerDashboardPage.jsx";
 
 function RequireAuth({ children }) {
@@ -47,6 +51,14 @@ function AppContent() {
                                 <Link to="/orders" className="site-header__link">
                                     Orders
                                 </Link>
+                                <Link to="/profile" className="site-header__link">
+                                    Profile
+                                </Link>
+                                {user.role === "admin" && (
+                                    <Link to="/admin" className="site-header__link">
+                                        Admin
+                                    </Link>
+                                )}
                                 <Link to="/sell" className="site-header__link">
                                     List a book
                                 </Link>
@@ -75,6 +87,8 @@ function AppContent() {
                     <Route path="/books/:id" element={<BookDetailsPage />} />
                     <Route path="/register" element={<RegisterPage />} />
                     <Route path="/login" element={<LoginPage />} />
+                    <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                    <Route path="/reset-password" element={<ResetPasswordPage />} />
                     <Route
                         path="/seller/dashboard"
                         element={
@@ -112,6 +126,22 @@ function AppContent() {
                         element={
                             <RequireAuth>
                                 <OrdersPage />
+                            </RequireAuth>
+                        }
+                    />
+                    <Route
+                        path="/profile"
+                        element={
+                            <RequireAuth>
+                                <ProfilePage />
+                            </RequireAuth>
+                        }
+                    />
+                    <Route
+                        path="/admin"
+                        element={
+                            <RequireAuth>
+                                <AdminDashboardPage />
                             </RequireAuth>
                         }
                     />

@@ -5,6 +5,7 @@ const mongoose = require("mongoose");
 const app = require("../src/app");
 const Book = require("../src/models/Book");
 const User = require("../src/models/User");
+const ModerationReport = require("../src/models/ModerationReport");
 
 // Integration tests for the catalogue API. They talk to the real database
 // via MONGODB_URI, matching the existing auth integration test. Each test
@@ -32,6 +33,10 @@ describe("Catalogue API Integration Tests", () => {
             email: sellerEmail,
             password: "Test@12345"
         });
+        await User.updateOne(
+            { email: sellerEmail },
+            { $set: { role: "seller", isSellerVerified: true } }
+        );
         const loginResponse = await request(app).post("/api/auth/login").send({
             email: sellerEmail,
             password: "Test@12345"
@@ -78,6 +83,10 @@ describe("Catalogue API Integration Tests", () => {
     });
 
     afterAll(async () => {
+        const testBooks = await Book.find({ isbn: { $in: [testIsbn, ...fixtureIsbns] } })
+            .select("_id")
+            .lean();
+        await ModerationReport.deleteMany({ book: { $in: testBooks.map((book) => book._id) } });
         await Book.deleteMany({ isbn: { $in: [testIsbn, ...fixtureIsbns] } });
         await User.deleteOne({ email: sellerEmail });
         await mongoose.connection.close();
