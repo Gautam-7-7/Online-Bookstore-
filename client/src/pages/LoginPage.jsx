@@ -61,6 +61,9 @@ export default function LoginPage() {
                 </button>
             </form>
             <p className="form-page__switch">
+                <Link to="/forgot-password">Forgot your password?</Link>
+            </p>
+            <p className="form-page__switch">
                 New here? <Link to="/register">Create an account</Link>
             </p>
         </section>

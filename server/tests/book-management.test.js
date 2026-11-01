@@ -3,7 +3,8 @@ jest.mock("../src/models/Book", () => ({
     create: jest.fn(),
     find: jest.fn(),
     findOne: jest.fn(),
-    findOneAndUpdate: jest.fn()
+    findOneAndUpdate: jest.fn(),
+    updateOne: jest.fn()
 }));
 jest.mock("../src/models/Order", () => ({
     aggregate: jest.fn()
@@ -11,11 +12,15 @@ jest.mock("../src/models/Order", () => ({
 jest.mock("../src/models/SellerRating", () => ({
     findOne: jest.fn()
 }));
+jest.mock("../src/models/ModerationReport", () => ({
+    create: jest.fn()
+}));
 
 const mongoose = require("mongoose");
 const Book = require("../src/models/Book");
 const Order = require("../src/models/Order");
 const SellerRating = require("../src/models/SellerRating");
+const ModerationReport = require("../src/models/ModerationReport");
 const {
     createBook,
     getSellerDashboard,
@@ -27,7 +32,7 @@ const {
 
 const sellerId = new mongoose.Types.ObjectId();
 const bookId = new mongoose.Types.ObjectId();
-const seller = { id: sellerId, name: "Seller One" };
+const seller = { id: sellerId, name: "Seller One", isSellerVerified: true };
 const createResponse = () => {
     const response = {};
     response.status = jest.fn().mockReturnValue(response);
@@ -72,6 +77,8 @@ describe("Seller listing management", () => {
 
     test("flags duplicate ISBNs with an explicit conflict response", async () => {
         Book.findOne.mockResolvedValue({ _id: bookId });
+        ModerationReport.create.mockResolvedValue({ _id: new mongoose.Types.ObjectId() });
+        Book.updateOne.mockResolvedValue({ modifiedCount: 1 });
         const response = createResponse();
 
         await createBook(
@@ -92,6 +99,28 @@ describe("Seller listing management", () => {
         expect(response.json).toHaveBeenCalledWith(
             expect.objectContaining({ duplicate: true, duplicateBookId: bookId })
         );
+        expect(Book.create).not.toHaveBeenCalled();
+        expect(ModerationReport.create).toHaveBeenCalledWith(
+            expect.objectContaining({ type: "duplicate_isbn" })
+        );
+    });
+
+    test("requires administrator verification before listing creation", async () => {
+        const response = createResponse();
+        await createBook(
+            {
+                user: { ...seller, isSellerVerified: false },
+                body: {
+                    title: "Test Book",
+                    author: "Author",
+                    isbn: "9780132350884",
+                    category: "Technology",
+                    price: 20
+                }
+            },
+            response
+        );
+        expect(response.status).toHaveBeenCalledWith(403);
         expect(Book.create).not.toHaveBeenCalled();
     });
 

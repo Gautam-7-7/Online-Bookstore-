@@ -4,7 +4,8 @@ import {
     getBookReviews,
     getReviewEligibility,
     submitBookReview,
-    addCartItem
+    addCartItem,
+    reportBook
 } from "../api/commerce.js";
 import { getBookById } from "../api/books.js";
 import { useAuth } from "../auth/AuthContext.jsx";
@@ -34,6 +35,9 @@ export default function BookDetailsPage() {
     const [cartMessage, setCartMessage] = useState("");
     const [cartError, setCartError] = useState("");
     const [addingToCart, setAddingToCart] = useState(false);
+    const [showReportForm, setShowReportForm] = useState(false);
+    const [reportReason, setReportReason] = useState("");
+    const [reportMessage, setReportMessage] = useState("");
 
     useEffect(() => {
         let ignore = false;
@@ -152,6 +156,20 @@ export default function BookDetailsPage() {
         }
     };
 
+    const handleReport = async (event) => {
+        event.preventDefault();
+        setReviewError("");
+        setReportMessage("");
+        try {
+            await reportBook(id, reportReason, token);
+            setReportReason("");
+            setShowReportForm(false);
+            setReportMessage("Report sent to the moderation team.");
+        } catch (requestError) {
+            setReviewError(requestError.message);
+        }
+    };
+
     if (loading) {
         return <p className="state state--loading">Loading book…</p>;
     }
@@ -210,6 +228,12 @@ export default function BookDetailsPage() {
                     )}
                     {cartMessage && <p className="form-page__notice" role="status">{cartMessage}</p>}
                     {cartError && <p className="form-page__error" role="alert">{cartError}</p>}
+                    {token && (
+                        <button className="btn" onClick={() => setShowReportForm((shown) => !shown)}>
+                            Report this listing
+                        </button>
+                    )}
+                    {reportMessage && <p className="form-page__notice" role="status">{reportMessage}</p>}
 
                     <dl className="book-details__facts">
                         <div>
@@ -269,6 +293,22 @@ export default function BookDetailsPage() {
                     </div>
                 </div>
                 {reviewError && <p className="form-page__error" role="alert">{reviewError}</p>}
+                {token && showReportForm && (
+                    <form className="review-form" onSubmit={handleReport}>
+                        <label className="field">
+                            <span>Why are you reporting this listing?</span>
+                            <textarea
+                                required
+                                minLength="5"
+                                maxLength="500"
+                                rows="3"
+                                value={reportReason}
+                                onChange={(event) => setReportReason(event.target.value)}
+                            />
+                        </label>
+                        <button className="btn">Submit report</button>
+                    </form>
+                )}
                 {reviewData.reviews.length > 0 && (
                     <div className="review-list">
                         {reviewData.reviews.map((review) => (

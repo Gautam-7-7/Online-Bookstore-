@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Book = require("../models/Book");
 const Order = require("../models/Order");
 const SellerRating = require("../models/SellerRating");
+const ModerationReport = require("../models/ModerationReport");
 
 const SORT_OPTIONS = ["newest", "price_asc", "price_desc", "rating_desc"];
 const AVAILABILITY_OPTIONS = ["in_stock", "out_of_stock"];
@@ -38,6 +39,11 @@ const isDuplicateKeyError = (error) => error?.code === 11000;
 // POST /api/books  -> create a book (BOOK: "add book" API)
 const createBook = async (req, res) => {
     try {
+        if (!req.user.isSellerVerified) {
+            return res.status(403).json({
+                message: "Your seller account must be verified before creating listings"
+            });
+        }
         const {
             title,
             author,
@@ -62,6 +68,18 @@ const createBook = async (req, res) => {
         const existingBook = await Book.findOne({ isbn: normalizedIsbn });
 
         if (existingBook) {
+            await Promise.all([
+                ModerationReport.create({
+                    book: existingBook._id,
+                    reporter: req.user.id,
+                    type: "duplicate_isbn",
+                    reason: `Duplicate ISBN listing attempt for ${normalizedIsbn}`
+                }),
+                Book.updateOne(
+                    { _id: existingBook._id },
+                    { $set: { moderationStatus: "flagged" } }
+                )
+            ]);
             return res.status(409).json({
                 message: "Duplicate ISBN detected; this book is already listed",
                 duplicate: true,

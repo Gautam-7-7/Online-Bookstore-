@@ -2,16 +2,16 @@
 
 A college Software Engineering mini-project with an Express/Mongoose API and a React/Vite client. The frontend supports public catalogue browsing, search, filters and sorting; registration and login; seller listing management; and buyer cart, coupon, shipping-address checkout, order tracking, cancellation/return requests, and verified-purchase reviews.
 
-## Repository status (inspected 29 October 2026)
+## Repository status (inspected 30 October 2026)
 
-The authentication backend provides registration and login, bcrypt password hashing, JWT issuance, and failed-login tracking/temporary lockout. Sellers can manage their own listings and view sales/rating summaries. Buyers can persist carts, apply server-validated coupons, select saved shipping addresses, check out through Razorpay, track orders, request cancellation/returns, and review books after a delivered purchase.
+The application includes registration/login, bcrypt password hashing, JWT authentication, account lockout, profile editing and password recovery; public catalogue search; verified-seller listing management; persistent carts and saved addresses; coupon and Razorpay checkout; order tracking, cancellation/returns and downloadable invoices; verified-purchase reviews; and administrator moderation, account controls, coupon management and analytics.
 
-The project does not currently include password reset/profile management, administrator moderation/coupon-management screens, or downloadable invoice PDFs. Live Razorpay payments require test/live credentials and webhook configuration. The repository has separate backend Jest and frontend Vitest/build scripts; it has no root-level package manifest.
+External services and deployment requirements still need configuration and independent verification: password reset requires working SMTP; Razorpay flows require test/live credentials and webhook configuration; shipping updates require a configured partner callback; TLS, uptime, load/scaling, and PCI-DSS certification cannot be established by local tests. The repository has separate backend Jest and frontend Vitest/build scripts; it has no root-level package manifest.
 
 ### Sprint 1 progress (19–23 October 2026)
 
-- **Implemented:** authentication, catalogue, seller listing create/edit/deactivate and dashboard, cart, coupon validation, shipping-address selection, payment checkout UI, buyer order tracking/cancellation/returns, and verified-buyer book reviews.
-- **Still outstanding:** password reset/profile management, administration workflows, and invoice generation.
+- **Implemented:** authentication and account features, catalogue, verified-seller listing create/edit/deactivate and dashboard, cart, coupons, shipping-address selection, payment checkout, buyer order tracking/cancellation/returns and invoices, verified-buyer reviews, and administrator workflows.
+- **Operational acceptance still outstanding:** production SMTP/payment/shipping credentials and deployment; independent TLS, uptime, load/scaling, full browser accessibility, and PCI-DSS evidence.
 - **Project tracking:** no GitHub Issues or GitHub Projects board were visible during inspection. The submitted Part-2 deliverables call for a linked project, SRS-based backlog, estimates, owners, and two sprint plans; those items still need team tracking.
 - **Sprint 2:** scheduled for 26–30 October 2026 in the submitted deliverables.
 
@@ -54,22 +54,9 @@ cd server
 npm ci
 ```
 
-Create `server/.env` for local development (do not commit it):
-
-```dotenv
-MONGODB_URI=mongodb://127.0.0.1:27017/online_bookstore
-JWT_SECRET=replace-with-a-local-development-secret
-PORT=5000
-# Use Razorpay Dashboard test credentials for local testing; never commit real keys.
-RAZORPAY_KEY_ID=rzp_test_replace_me
-RAZORPAY_KEY_SECRET=replace-with-your-razorpay-test-secret
-RAZORPAY_CURRENCY=INR
-RAZORPAY_WEBHOOK_SECRET=replace-with-the-webhook-secret-configured-in-razorpay
-# Defaults to seven; accepted configuration range is 1-30 days.
-ORDER_RETURN_WINDOW_DAYS=7
-# Configure the courier webhook before accepting tracking updates.
-SHIPPING_WEBHOOK_SECRET=replace-with-a-long-random-secret
-```
+Copy `server/.env.example` to `server/.env` and set local credentials (do not
+commit `.env`). Password recovery requires an SMTP account and a reachable
+`PASSWORD_RESET_URL`. Do not use the example placeholders as production secrets.
 
 Available scripts, defined in `server/package.json`:
 
@@ -77,7 +64,13 @@ Available scripts, defined in `server/package.json`:
 npm start       # start the API
 npm run dev     # start with nodemon
 npm test        # run Jest (requires MongoDB for the integration tests)
+npm run admin:promote -- account@example.com  # promote an existing user account
 ```
+
+Provision the first administrator only after registering that account; run
+`npm run admin:promote -- account@example.com` with the correct `MONGODB_URI`.
+The promotion script does not create accounts or accept credentials from the
+browser.
 
 For a repeatable test run, point `MONGODB_URI` at an isolated local test database and run:
 
@@ -128,6 +121,10 @@ user.
   normalized duplicate ISBNs and scopes listing edits/removal to the owner.
 - Public book details show verified reviews. An authenticated buyer can submit
   one review only after a delivered purchase of that book.
+- `GET /api/orders/:orderId/invoice` — download a PDF invoice for a paid order
+  owned by the authenticated buyer.
+- `POST /api/reports/books/:bookId` — submit a report about a listing. Reports
+  and duplicate ISBN flags appear in administrator moderation.
 - `POST /api/coupons/validate` — validate `{ "code": "..." }` against the
   current server-side cart. Coupons are provisioned as `Coupon` records.
 - `POST /api/orders/checkout` — submit a shipping address, optional coupon code,
@@ -191,8 +188,8 @@ npm run migrate:listing-owners -- --apply
 The client helper in `client/src/api/commerce.js` loads Razorpay's hosted
 Checkout.js, creates a server-priced Razorpay Order, opens the provider-hosted
 payment form, and posts the returned payment signature to the verification API.
-The actual cart/shipping UI can call `openRazorpayCheckout` once that screen is
-ready. The backend never accepts raw PAN/CVV/expiry data. `RAZORPAY_KEY_SECRET`
+The checkout page calls `openRazorpayCheckout` after server-side order creation.
+The backend never accepts raw PAN/CVV/expiry data. `RAZORPAY_KEY_SECRET`
 is server-only; only `RAZORPAY_KEY_ID` is returned to the browser. Payment
 confirmation requires both server-side signature verification and a server
 fetch of the Razorpay payment. Webhook callbacks use HMAC verification over the
@@ -210,6 +207,28 @@ Shipping callbacks require `SHIPPING_WEBHOOK_SECRET`; without it, status
 updates are disabled. Keep this secret out of source control. The shipping
 integration should additionally verify provider signatures before production
 use.
+
+### Accounts and administration
+
+- `GET /api/account/me` and `PATCH /api/account/me` — view and update the
+  authenticated user's name, email, and phone.
+- `POST /api/account/password/forgot` and
+  `POST /api/account/password/reset` — request and consume a single-use,
+  30-minute password-reset link. SMTP settings and `PASSWORD_RESET_URL` are
+  required to deliver email.
+- The client provides `/profile`, `/forgot-password`, and `/reset-password`.
+  Saved shipping addresses remain available at checkout.
+- `/admin` provides moderation, account suspension/reinstatement, seller
+  verification, coupon controls, analytics, and the audit log. Every `/api/admin`
+  endpoint requires an authenticated administrator; create the initial admin
+  from an existing account with `npm run admin:promote -- account@example.com`.
+- New listings are restricted to administrator-verified sellers. Account role
+  and suspension checks are enforced by the API, not only by client navigation.
+
+Local tests use mocked payment/mail providers where credentials are not
+configured. A passing local test suite does not verify live email delivery,
+Razorpay transactions, courier callbacks, production TLS/uptime, or PCI-DSS
+certification.
 
 ## GitHub Actions and pull requests
 

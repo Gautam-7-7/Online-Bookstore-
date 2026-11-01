@@ -1,4 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import axe from "axe-core";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import App from "./App.jsx";
@@ -102,8 +103,118 @@ describe("catalogue frontend", () => {
                     json: async () => ({
                         message: "Login successful",
                         token: "signed-token",
-                        user: { id: "user-1", name: "Reader", email: "reader@example.com" }
+                        user: {
+                            id: "user-1",
+                            name: "Reader",
+                            email: "reader@example.com",
+                            role: "seller",
+                            isSellerVerified: true
+                        }
                     })
+                });
+            }
+
+            if (
+                url.endsWith("/api/account/me") &&
+                (!options.method || options.method === "GET")
+            ) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        user: {
+                            id: "user-1",
+                            name: "Reader",
+                            email: "reader@example.com",
+                            phone: "9876543210",
+                            role: "buyer",
+                            isSellerVerified: false
+                        }
+                    })
+                });
+            }
+
+            if (url.endsWith("/api/account/me") && options.method === "PATCH") {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        user: {
+                            id: "user-1",
+                            ...JSON.parse(options.body),
+                            role: "buyer"
+                        }
+                    })
+                });
+            }
+
+            if (url.endsWith("/api/account/password/forgot")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 202,
+                    json: async () => ({
+                        message: "If an eligible account exists, password reset instructions will be sent."
+                    })
+                });
+            }
+
+            if (url.endsWith("/api/account/password/reset")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ message: "Password reset successfully" })
+                });
+            }
+
+            if (url.endsWith("/api/admin/analytics")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        orders: { paidOrders: 2, refundedOrders: 0, grossRevenue: 1080, refundedAmount: 0 },
+                        netRevenue: 1080,
+                        topTitles: [{ _id: "Clean Code", unitsSold: 2, grossSales: 1080 }],
+                        activeSellers: 1,
+                        users: { total: 3, suspended: 0, verifiedSellers: 1 },
+                        listings: { total: 2, active: 2, flagged: 0 }
+                    })
+                });
+            }
+            if (url.endsWith("/api/admin/moderation/reports")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ reports: [] })
+                });
+            }
+            if (url.endsWith("/api/admin/users")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        users: [{
+                            _id: "user-2",
+                            name: "New Seller",
+                            email: "seller@example.com",
+                            role: "buyer",
+                            isSuspended: false,
+                            isSellerVerified: false
+                        }]
+                    })
+                });
+            }
+            if (url.endsWith("/api/admin/coupons")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ coupons: [] })
+                });
+            }
+            if (url.endsWith("/api/admin/audit-logs")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ auditLogs: [] })
                 });
             }
 
@@ -253,6 +364,14 @@ describe("catalogue frontend", () => {
                 });
             }
 
+            if (url.endsWith("/api/orders/order-1/invoice")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    blob: async () => new Blob(["%PDF-smoke"], { type: "application/pdf" })
+                });
+            }
+
             if (url.endsWith("/api/orders") && (!options.method || options.method === "GET")) {
                 return Promise.resolve({
                     ok: true,
@@ -296,6 +415,7 @@ describe("catalogue frontend", () => {
         fireEvent.change(screen.getByLabelText("Search books"), {
             target: { value: "Martin" }
         });
+
         fireEvent.submit(screen.getByRole("search"));
         fireEvent.change(screen.getByLabelText("Category"), {
             target: { value: "Programming" }
@@ -328,6 +448,19 @@ describe("catalogue frontend", () => {
                 true
             );
         });
+    });
+
+    test("keeps the public catalogue free of automated WCAG 2 A/AA violations", async () => {
+        renderApp();
+        await screen.findByText("Clean Code");
+        const results = await axe.run(document.body, {
+            runOnly: {
+                type: "tag",
+                values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]
+            },
+            rules: { "color-contrast": { enabled: false } }
+        });
+        expect(results.violations).toEqual([]);
     });
 
     test("shows loading and empty states", async () => {
@@ -529,10 +662,12 @@ describe("catalogue frontend", () => {
 
         expect(await screen.findByRole("heading", { name: "Your orders" })).toBeInTheDocument();
         expect(screen.getByText("Order order-1")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Download invoice" })).toBeInTheDocument();
         fireEvent.click(screen.getByRole("button", { name: "Request cancellation" }));
         fireEvent.change(screen.getByLabelText("Reason for cancellation"), {
             target: { value: "Ordered by mistake" }
         });
+
         fireEvent.click(screen.getByRole("button", { name: "Submit request" }));
 
         expect(await screen.findByText(/Cancellation: refund pending/)).toBeInTheDocument();
@@ -543,6 +678,81 @@ describe("catalogue frontend", () => {
         expect(JSON.parse(cancellationRequest[1].body)).toEqual({
             reason: "Ordered by mistake"
         });
+    });
+
+    test("updates the authenticated profile", async () => {
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "signed-token",
+                user: { id: "user-1", name: "Reader", email: "reader@example.com" }
+            })
+        );
+        renderApp(["/profile"]);
+
+        fireEvent.change(await screen.findByLabelText("Name"), {
+            target: { value: "Updated Reader" }
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Save profile" }));
+        expect(await screen.findByRole("status")).toHaveTextContent("Profile saved.");
+        expect(global.fetch).toHaveBeenCalledWith(
+            "/api/account/me",
+            expect.objectContaining({
+                method: "PATCH",
+                body: JSON.stringify({
+                    name: "Updated Reader",
+                    email: "reader@example.com",
+                    phone: "9876543210"
+                })
+            })
+        );
+    });
+
+    test("provides password recovery and submits a reset token", async () => {
+        renderApp(["/forgot-password"]);
+        fireEvent.change(screen.getByLabelText("Email"), {
+            target: { value: "reader@example.com" }
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
+        expect(await screen.findByRole("status")).toHaveTextContent(
+            "If an eligible account exists"
+        );
+
+        cleanup();
+        renderApp(["/reset-password?token=abcdefghijklmnopqrstuvwxyz1234567890ABC"]);
+        fireEvent.change(screen.getByLabelText("New password"), {
+            target: { value: "NewPassword@123" }
+        });
+        fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+        expect(await screen.findByRole("heading", { name: "Log in" })).toBeInTheDocument();
+        expect(global.fetch).toHaveBeenCalledWith(
+            "/api/account/password/reset",
+            expect.objectContaining({
+                method: "POST",
+                body: JSON.stringify({
+                    token: "abcdefghijklmnopqrstuvwxyz1234567890ABC",
+                    password: "NewPassword@123"
+                })
+            })
+        );
+    });
+
+    test("renders the administrator analytics dashboard", async () => {
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "admin-token",
+                user: { id: "admin-1", name: "Admin", email: "admin@example.com", role: "admin" }
+            })
+        );
+        renderApp(["/admin"]);
+
+        expect(await screen.findByRole("heading", { name: "Administrator dashboard" })).toBeInTheDocument();
+        expect(screen.getAllByText("₹1080.00")).toHaveLength(2);
+        expect(screen.getByRole("heading", { name: "Top titles" })).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Accounts" }));
+        expect(screen.getByText("seller@example.com")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Verify seller" })).toBeInTheDocument();
     });
 
     test("lets a buyer request a return for a delivered order", async () => {

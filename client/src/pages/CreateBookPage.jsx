@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 import BookListingForm from "../components/BookListingForm.jsx";
 
 export default function CreateBookPage() {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (values) => {
@@ -19,11 +19,17 @@ export default function CreateBookPage() {
             <p className="form-page__hint">
                 Your signed-in account name will be shown as the seller.
             </p>
-            <BookListingForm
-                submitLabel="Create listing"
-                submittingLabel="Creating listing…"
-                onSubmit={handleSubmit}
-            />
+            {user?.isSellerVerified ? (
+                <BookListingForm
+                    submitLabel="Create listing"
+                    submittingLabel="Creating listing…"
+                    onSubmit={handleSubmit}
+                />
+            ) : (
+                <p className="form-page__hint" role="status">
+                    Seller verification is required before listing books. Contact your administrator to request verification.
+                </p>
+            )}
         </section>
     );
 }

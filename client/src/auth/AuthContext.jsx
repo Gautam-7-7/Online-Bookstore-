@@ -32,6 +32,19 @@ export function AuthProvider({ children }) {
             signOut: () => {
                 localStorage.removeItem(STORAGE_KEY);
                 setAuth(null);
+            },
+            updateUser: (updates) => {
+                setAuth((current) => {
+                    if (!current) {
+                        return current;
+                    }
+                    const nextAuth = {
+                        ...current,
+                        user: { ...current.user, ...updates }
+                    };
+                    localStorage.setItem(STORAGE_KEY, JSON.stringify(nextAuth));
+                    return nextAuth;
+                });
             }
         }),
         [auth]

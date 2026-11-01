@@ -112,6 +112,12 @@ const bookSchema = new mongoose.Schema(
         isActive: {
             type: Boolean,
             default: true
+        },
+        moderationStatus: {
+            type: String,
+            enum: ["clear", "flagged", "approved", "rejected"],
+            default: "clear",
+            index: true
         }
     },
     {
