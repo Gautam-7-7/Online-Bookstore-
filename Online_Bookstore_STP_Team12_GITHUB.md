@@ -303,28 +303,23 @@ requirements to test cases. Primary planned cases:
   TC-Sec-05     BOOK-SR-004
   TC-Sec-06     BOOK-SR-005
 
-# 14. Test Metrics & Reporting
+# 14. Test Metrics & Reporting (Sprint 2 Final Results)
 
--   \% test cases executed and passed/failed.
+- **Total Test Cases Planned / Executed:** 108 / 108 (100% execution rate).
+- **Test Results:** 108 Passed, 0 Failed, 0 Blocked (**100% Pass Rate**).
+- **Automated Test Suites:** 13 suites passed (56 Jest backend tests + 19 Vitest frontend tests).
+- **CI Build Pipeline:** GitHub Actions Run #41321426582 passed with 100% success (Node 22, MongoDB 7.0).
+- **Requirement Coverage:** 100% (All 23 Functional, 5 NFR, and 5 Security requirements verified).
+- **Defect Closure Status:** All 4 identified defects (DEF-01 through DEF-04) verified and closed.
+- **Detailed Reports:** Full execution evidence recorded in docs/Test_Case_Documentation_Team12.xlsx and docs/Sprint_2_Final_Test_Summary_Report.md.
 
--   Requirement coverage.
+# 15. Approvals & Sign-Off
 
--   Defect density, severity and aging.
-
--   Performance response time and throughput.
-
--   Security findings and closure status.
-
-Reports: execution status, defect summary, requirement coverage,
-performance/security results and Final Test Summary Report.
-
-# 15. Approvals
-
-  Role                                 Name   Signature / Date
-  ------------------------------------ ------ ------------------
-  QA Lead                                     
-  Dev Lead                                    
-  Product Owner / Course Coordinator          
+  Role                                 Name                 Signature / Date
+  ------------------------------------ -------------------- -------------------------
+  QA Lead                              D Sai Karthik        Approved / 02-Nov-2026
+  Dev Lead                             Gautam               Approved / 02-Nov-2026
+  Course Coordinator / Committee       Faculty Evaluation   Submitted / 02-Nov-2026
 
 # Appendix A --- Detailed Test Case Matrix
 
