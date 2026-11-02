@@ -202,6 +202,12 @@ PCI-DSS certification: production deployment must enforce TLS, protect
 secrets, verify deployment configuration, and complete the applicable
 compliance assessment.
 
+For a local UI demonstration without any gateway credentials, set
+`PAYMENT_GATEWAY_MODE=mock` in the uncommitted `server/.env`. This mode creates
+local synthetic payment IDs, never contacts Razorpay, and is only for local
+development; use `PAYMENT_GATEWAY_MODE=razorpay` with Razorpay test credentials
+for integration testing.
+
 Shipping callbacks require `SHIPPING_WEBHOOK_SECRET`; without it, status
 updates are disabled. Keep this secret out of source control. The shipping
 integration should additionally verify provider signatures before production

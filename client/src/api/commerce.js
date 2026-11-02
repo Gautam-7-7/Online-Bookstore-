@@ -200,11 +200,23 @@ export const openRazorpayCheckout = async ({
         token,
         idempotencyKey
     );
+    const checkout = created.checkout;
+    if (checkout.mode === "mock") {
+        const paymentId = `pay_mock_${checkout.orderId.slice("order_mock_".length)}_${checkout.amount}`;
+        return verifyPayment(
+            checkout.localOrderId,
+            {
+                razorpay_payment_id: paymentId,
+                razorpay_order_id: checkout.orderId,
+                razorpay_signature: "mock_signature"
+            },
+            token
+        );
+    }
     await loadRazorpayCheckout();
 
     return new Promise((resolve, reject) => {
         let completed = false;
-        const checkout = created.checkout;
         const finish = (callback, value) => {
             if (completed) {
                 return;

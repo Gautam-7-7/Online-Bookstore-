@@ -248,8 +248,9 @@ const validateShippingAddress = (address) => {
     return normalized;
 };
 
-const checkoutOptions = (order, keyId, currency) => ({
+const checkoutOptions = (order, keyId, currency, mode = "razorpay") => ({
     keyId,
+    mode,
     orderId: order.gatewayOrderId,
     amount: Math.round(order.total * 100),
     currency,
@@ -525,7 +526,7 @@ const checkout = async (req, res) => {
             return res.status(200).json({
                 message: "Razorpay checkout order is ready",
                 order,
-                checkout: checkoutOptions(order, gateway.keyId, gateway.currency)
+                checkout: checkoutOptions(order, gateway.keyId, gateway.currency, gateway.mode)
             });
         }
 
@@ -589,7 +590,12 @@ const checkout = async (req, res) => {
         return res.status(201).json({
             message: "Razorpay checkout order created; payment confirmation is still required",
             order,
-            checkout: checkoutOptions(order, razorpayOrder.keyId, razorpayOrder.currency)
+            checkout: checkoutOptions(
+                order,
+                razorpayOrder.keyId,
+                razorpayOrder.currency,
+                razorpayOrder.mode
+            )
         });
     } catch (error) {
         if (order && order.payment.status === "pending") {

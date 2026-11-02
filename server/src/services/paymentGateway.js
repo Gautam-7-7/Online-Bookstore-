@@ -13,10 +13,26 @@ class PaymentGatewayError extends Error {
 }
 
 const getConfig = () => {
+    const mode = process.env.PAYMENT_GATEWAY_MODE || "razorpay";
     const keyId = process.env.RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     const currency = process.env.RAZORPAY_CURRENCY || DEFAULT_CURRENCY;
 
+    if (mode === "mock") {
+        return {
+            mode,
+            keyId: "rzp_test_mock",
+            keySecret: process.env.MOCK_PAYMENT_SECRET || "local-mock-payment-secret",
+            currency
+        };
+    }
+    if (mode !== "razorpay") {
+        throw new PaymentGatewayError(
+            "invalid_configuration",
+            "Payment gateway mode is invalid",
+            503
+        );
+    }
     if (!keyId || !keySecret) {
         throw new PaymentGatewayError(
             "not_configured",
@@ -32,7 +48,7 @@ const getConfig = () => {
         );
     }
 
-    return { keyId, keySecret, currency };
+    return { mode, keyId, keySecret, currency };
 };
 
 const razorpayRequest = async (path, { method = "GET", body, headers = {} } = {}) => {
@@ -82,7 +98,17 @@ const razorpayRequest = async (path, { method = "GET", body, headers = {} } = {}
 };
 
 const createRazorpayOrder = async ({ amount, receipt, notes }) => {
-    const { currency } = getConfig();
+    const config = getConfig();
+    const { currency } = config;
+    if (config.mode === "mock") {
+        return {
+            mode: "mock",
+            keyId: config.keyId,
+            gatewayOrderId: `order_mock_${crypto.randomBytes(12).toString("hex")}`,
+            amount,
+            currency
+        };
+    }
     const data = await razorpayRequest("/orders", {
         method: "POST",
         body: {
@@ -107,11 +133,20 @@ const createRazorpayOrder = async ({ amount, receipt, notes }) => {
         );
     }
 
-    return { keyId: getConfig().keyId, gatewayOrderId: data.id, amount, currency };
+    return { keyId: config.keyId, gatewayOrderId: data.id, amount, currency };
 };
 
 const verifyCheckoutSignature = ({ gatewayOrderId, paymentId, signature }) => {
-    const { keySecret } = getConfig();
+    const { mode, keySecret } = getConfig();
+    if (
+        mode === "mock" &&
+        typeof gatewayOrderId === "string" &&
+        typeof paymentId === "string" &&
+        signature === "mock_signature"
+    ) {
+        return /^order_mock_[a-f0-9]{24}$/.test(gatewayOrderId) &&
+            /^pay_mock_[a-f0-9]{24}_\d+$/.test(paymentId);
+    }
     if (
         typeof gatewayOrderId !== "string" ||
         typeof paymentId !== "string" ||
@@ -132,12 +167,25 @@ const verifyCheckoutSignature = ({ gatewayOrderId, paymentId, signature }) => {
 };
 
 const fetchRazorpayPayment = async (paymentId) => {
-    if (typeof paymentId !== "string" || !/^pay_[A-Za-z0-9]+$/.test(paymentId)) {
+    if (typeof paymentId !== "string" || !/^pay_[A-Za-z0-9_]+$/.test(paymentId)) {
         throw new PaymentGatewayError("invalid_payment", "Invalid Razorpay payment ID", 400);
     }
 
-    const payment = await razorpayRequest(`/payments/${encodeURIComponent(paymentId)}`);
     const { currency } = getConfig();
+    if (process.env.PAYMENT_GATEWAY_MODE === "mock") {
+        const match = /^pay_mock_([a-f0-9]{24})_(\d+)$/.exec(paymentId);
+        if (!match) {
+            throw new PaymentGatewayError("invalid_payment", "Invalid mock payment ID", 400);
+        }
+        return {
+            id: paymentId,
+            order_id: `order_mock_${match[1]}`,
+            amount: Number(match[2]),
+            currency,
+            status: "captured"
+        };
+    }
+    const payment = await razorpayRequest(`/payments/${encodeURIComponent(paymentId)}`);
     if (
         payment.id !== paymentId ||
         typeof payment.order_id !== "string" ||
@@ -154,7 +202,10 @@ const fetchRazorpayPayment = async (paymentId) => {
 };
 
 const captureRazorpayPayment = async ({ paymentId, amount }) => {
-    const { currency } = getConfig();
+    const { mode, currency } = getConfig();
+    if (mode === "mock") {
+        return { id: paymentId, amount, currency, status: "captured" };
+    }
     return razorpayRequest(`/payments/${encodeURIComponent(paymentId)}/capture`, {
         method: "POST",
         body: { amount, currency }
@@ -162,7 +213,10 @@ const captureRazorpayPayment = async ({ paymentId, amount }) => {
 };
 
 const createRazorpayRefund = async ({ paymentId, amount, idempotencyKey, receipt }) => {
-    const { currency } = getConfig();
+    const { mode, currency } = getConfig();
+    if (mode === "mock") {
+        return { id: `rfnd_mock_${crypto.randomBytes(12).toString("hex")}`, status: "processed" };
+    }
     const refund = await razorpayRequest(
         `/payments/${encodeURIComponent(paymentId)}/refund`,
         {

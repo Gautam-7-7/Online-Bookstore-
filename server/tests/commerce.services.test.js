@@ -78,7 +78,9 @@ describe("Razorpay gateway integration", () => {
         RAZORPAY_KEY_ID: process.env.RAZORPAY_KEY_ID,
         RAZORPAY_KEY_SECRET: process.env.RAZORPAY_KEY_SECRET,
         RAZORPAY_CURRENCY: process.env.RAZORPAY_CURRENCY,
-        RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET
+        RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET,
+        PAYMENT_GATEWAY_MODE: process.env.PAYMENT_GATEWAY_MODE,
+        MOCK_PAYMENT_SECRET: process.env.MOCK_PAYMENT_SECRET
     };
     const originalFetch = global.fetch;
 
@@ -139,6 +141,37 @@ describe("Razorpay gateway integration", () => {
             notes: { local_order_id: "local-order-1" },
             partial_payment: false
         });
+    });
+
+    test("supports the explicit local mock checkout mode without network calls", async () => {
+        process.env.PAYMENT_GATEWAY_MODE = "mock";
+        const order = await createRazorpayOrder({
+            amount: 12500,
+            receipt: "local-order-1",
+            notes: {}
+        });
+        const paymentId = `pay_mock_${order.gatewayOrderId.slice("order_mock_".length)}_${order.amount}`;
+
+        expect(order).toMatchObject({
+            mode: "mock",
+            keyId: "rzp_test_mock",
+            amount: 12500,
+            currency: "INR"
+        });
+        expect(
+            verifyCheckoutSignature({
+                gatewayOrderId: order.gatewayOrderId,
+                paymentId,
+                signature: "mock_signature"
+            })
+        ).toBe(true);
+        await expect(fetchRazorpayPayment(paymentId)).resolves.toMatchObject({
+            order_id: order.gatewayOrderId,
+            amount: 12500,
+            status: "captured"
+        });
+        expect(global.fetch).not.toHaveBeenCalled();
+        delete process.env.PAYMENT_GATEWAY_MODE;
     });
 
     test("verifies Razorpay Checkout signatures", () => {
