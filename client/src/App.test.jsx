@@ -53,6 +53,7 @@ const placedOrder = {
         { status: "Placed", occurredAt: "2026-10-28T10:00:00.000Z", source: "payment" }
     ]
 };
+let testSavedAddresses;
 
 const renderApp = (initialEntries = ["/"]) =>
     render(
@@ -67,6 +68,7 @@ describe("catalogue frontend", () => {
         vi.restoreAllMocks();
         localStorage.clear();
         const savedAddresses = [homeAddress];
+        testSavedAddresses = savedAddresses;
         const savedOrders = [placedOrder];
         global.fetch = vi.fn((url, options = {}) => {
             if (url.endsWith("/api/books/book-1") && options.method === "PUT") {
@@ -584,6 +586,7 @@ describe("catalogue frontend", () => {
         fireEvent.change(screen.getByLabelText("Address label"), {
             target: { value: "Office" }
         });
+
         fireEvent.change(screen.getByLabelText("Address line 1"), {
             target: { value: "22 Market Road" }
         });
@@ -620,6 +623,26 @@ describe("catalogue frontend", () => {
                 phone: "9876543210"
             });
         });
+
+    });
+
+    test("opens the address form when payment is clicked without an address", async () => {
+        testSavedAddresses.length = 0;
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "signed-token",
+                user: { id: "user-1", name: "Reader", email: "reader@example.com" }
+            })
+        );
+        renderApp(["/checkout"]);
+
+        fireEvent.click(await screen.findByRole("button", { name: "Continue to payment" }));
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "Add a shipping address before continuing to payment."
+        );
+        expect(screen.getByLabelText("Address label")).toBeInTheDocument();
     });
 
     test("applies a server-validated coupon to checkout", async () => {

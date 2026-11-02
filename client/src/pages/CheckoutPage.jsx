@@ -174,7 +174,8 @@ export default function CheckoutPage() {
 
     const handleCheckout = async () => {
         if (!selectedAddress) {
-            setError("Choose or add a shipping address before continuing.");
+            setError("Add a shipping address before continuing to payment.");
+            setShowAddressForm(true);
             return;
         }
         setError("");
@@ -409,7 +410,7 @@ export default function CheckoutPage() {
                 )}
                 <button
                     className="search-bar__button"
-                    disabled={submitting || !selectedAddress}
+                    disabled={submitting}
                     onClick={handleCheckout}
                 >
                     {submitting ? "Opening secure checkout…" : "Continue to payment"}
