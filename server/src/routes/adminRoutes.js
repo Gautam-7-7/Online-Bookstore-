@@ -5,9 +5,11 @@ const {
     createCoupon,
     getAdminAnalytics,
     getAdminCoupons,
+    getAdminTrackingOrders,
     getAuditLogs,
     getModerationQueue,
     getUsers,
+    advanceAdminOrderTracking,
     reviewModerationReport,
     updateCouponStatus,
     updateUserStatus
@@ -20,6 +22,8 @@ router.get("/moderation/reports", getModerationQueue);
 router.patch("/moderation/reports/:reportId", reviewModerationReport);
 router.get("/users", getUsers);
 router.patch("/users/:userId", updateUserStatus);
+router.get("/orders/tracking", getAdminTrackingOrders);
+router.patch("/orders/:orderId/tracking", advanceAdminOrderTracking);
 router.get("/analytics", getAdminAnalytics);
 router.get("/coupons", getAdminCoupons);
 router.post("/coupons", createCoupon);

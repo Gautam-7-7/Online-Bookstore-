@@ -26,14 +26,10 @@ const {
     recalculateBookRating,
     recalculateSellerRating
 } = require("../services/ratings");
+const { advanceOrderTracking } = require("../services/orderTracking");
 
 const POPULATED_CART_FIELDS =
     "title author isbn price seller sellerId coverImage stock isActive";
-const NEXT_ORDER_STATUS = {
-    Placed: "Shipped",
-    Shipped: "Out for Delivery",
-    "Out for Delivery": "Delivered"
-};
 const RAW_PAYMENT_FIELDS = new Set([
     "card",
     "creditcard",
@@ -997,44 +993,36 @@ const updateTrackingStatus = async (req, res) => {
     try {
         const { orderId } = req.params;
         const { status, occurredAt } = req.body || {};
-        if (
-            !isValidObjectId(orderId) ||
-            !["Shipped", "Out for Delivery", "Delivered"].includes(status)
-        ) {
+        if (!isValidObjectId(orderId)) {
             return res.status(400).json({ message: "Invalid order ID or tracking status" });
         }
 
-        const order = await Order.findById(orderId.toLowerCase());
-        if (!order || order.payment.status !== "succeeded") {
-            return res.status(404).json({ message: "Confirmed order not found" });
-        }
-
-        if (NEXT_ORDER_STATUS[order.status] !== status) {
-            return res.status(409).json({
-                message: `Order status must advance from ${order.status} to ${NEXT_ORDER_STATUS[order.status] || "no further stage"}`
-            });
-        }
-
-        const previousTimestamp =
-            order.trackingHistory[order.trackingHistory.length - 1]?.occurredAt ||
-            order.createdAt;
-        const timestamp = occurredAt === undefined ? new Date() : new Date(occurredAt);
-        if (
-            Number.isNaN(timestamp.getTime()) ||
-            timestamp > new Date(Date.now() + 5 * 60 * 1000) ||
-            timestamp < previousTimestamp
-        ) {
-            return res.status(400).json({ message: "Invalid tracking event timestamp" });
-        }
-
-        order.status = status;
-        order.trackingHistory.push({
+        const result = await advanceOrderTracking({
+            orderId: orderId.toLowerCase(),
             status,
-            occurredAt: timestamp,
+            occurredAt,
             source: "shipping_partner"
         });
-        await order.save();
-        return res.status(200).json({ order });
+        if (result.type === "not_found") {
+            return res.status(404).json({ message: "Confirmed order not found" });
+        }
+        if (result.type === "invalid_status") {
+            return res.status(400).json({ message: "Invalid tracking status" });
+        }
+        if (result.type === "invalid_transition") {
+            return res.status(409).json({
+                message: `Order status must advance to ${result.expectedStatus || "no further stage"}`
+            });
+        }
+        if (result.type === "invalid_timestamp") {
+            return res.status(400).json({ message: "Invalid tracking event timestamp" });
+        }
+        if (result.type === "concurrent_update") {
+            return res.status(409).json({
+                message: "Order status changed concurrently; reload and retry"
+            });
+        }
+        return res.status(200).json({ order: result.order });
     } catch (error) {
         return res.status(500).json({ message: "Failed to update order tracking" });
     }
@@ -1198,6 +1186,21 @@ const getSellerReviews = async (req, res) => {
     }
 };
 
+const getRazorpayStatus = (req, res) => {
+    try {
+        const { currency } = getConfig();
+        return res.status(200).json({ configured: true, currency });
+    } catch (error) {
+        if (!(error instanceof PaymentGatewayError)) {
+            throw error;
+        }
+        return res.status(200).json({
+            configured: false,
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     addCartItem,
     calculateCartSubtotal,
@@ -1207,6 +1210,7 @@ module.exports = {
     getReviewEligibility,
     getCart,
     getOrder,
+    getRazorpayStatus,
     getSellerReviews,
     hasRawPaymentData,
     listOrders,

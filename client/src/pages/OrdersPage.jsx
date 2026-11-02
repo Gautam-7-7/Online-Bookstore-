@@ -19,6 +19,7 @@ export default function OrdersPage() {
     const [activeRequest, setActiveRequest] = useState(null);
     const [reason, setReason] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [invoiceError, setInvoiceError] = useState("");
     const [downloadingInvoice, setDownloadingInvoice] = useState("");
 
@@ -101,13 +102,30 @@ export default function OrdersPage() {
         }
     };
 
+    const handleRefreshOrders = async () => {
+        setError("");
+        setRefreshing(true);
+        try {
+            await loadOrders();
+        } catch (requestError) {
+            setError(requestError.message);
+        } finally {
+            setRefreshing(false);
+        }
+    };
+
     if (loading) {
         return <p className="state state--loading">Loading your orders…</p>;
     }
 
     return (
         <section className="orders-page">
-            <h1>Your orders</h1>
+            <header className="orders-page__heading">
+                <h1>Your orders</h1>
+                <button className="btn" disabled={refreshing} onClick={handleRefreshOrders}>
+                    {refreshing ? "Refreshing…" : "Refresh tracking"}
+                </button>
+            </header>
             <p className="form-page__hint">Review order status and delivery updates.</p>
             {error && <p className="form-page__error" role="alert">{error}</p>}
             {invoiceError && <p className="form-page__error" role="alert">{invoiceError}</p>}

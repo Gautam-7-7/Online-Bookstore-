@@ -1,5 +1,6 @@
 jest.mock("../src/models/Order", () => ({
-    findById: jest.fn()
+    findById: jest.fn(),
+    findOneAndUpdate: jest.fn()
 }));
 
 const mongoose = require("mongoose");
@@ -27,9 +28,17 @@ describe("Order tracking transitions", () => {
             trackingHistory: [
                 { status: "Placed", occurredAt: new Date(Date.now() - 60000) }
             ],
-            save: jest.fn().mockResolvedValue(undefined)
         };
         Order.findById.mockResolvedValue(order);
+        const updatedOrder = {
+            ...order,
+            status: "Shipped",
+            trackingHistory: [
+                ...order.trackingHistory,
+                expect.objectContaining({ status: "Shipped", source: "shipping_partner" })
+            ]
+        };
+        Order.findOneAndUpdate.mockResolvedValue(updatedOrder);
         const response = createResponse();
 
         await updateTrackingStatus(
@@ -40,10 +49,25 @@ describe("Order tracking transitions", () => {
             response
         );
 
-        expect(order.status).toBe("Shipped");
-        expect(order.trackingHistory[1].source).toBe("shipping_partner");
-        expect(order.save).toHaveBeenCalled();
+        expect(Order.findOneAndUpdate).toHaveBeenCalledWith(
+            {
+                _id: order._id,
+                status: "Placed",
+                "payment.status": "succeeded"
+            },
+            expect.objectContaining({
+                $set: { status: "Shipped" },
+                $push: {
+                    trackingHistory: expect.objectContaining({
+                        status: "Shipped",
+                        source: "shipping_partner"
+                    })
+                }
+            }),
+            { new: true, runValidators: true }
+        );
         expect(response.status).toHaveBeenCalledWith(200);
+        expect(response.json).toHaveBeenCalledWith({ order: updatedOrder });
     });
 
     test("rejects skipped stages without changing the order", async () => {
@@ -52,7 +76,6 @@ describe("Order tracking transitions", () => {
             payment: { status: "succeeded" },
             createdAt: new Date(),
             trackingHistory: [{ status: "Placed", occurredAt: new Date() }],
-            save: jest.fn()
         };
         Order.findById.mockResolvedValue(order);
         const response = createResponse();
@@ -67,6 +90,30 @@ describe("Order tracking transitions", () => {
 
         expect(response.status).toHaveBeenCalledWith(409);
         expect(order.status).toBe("Placed");
-        expect(order.save).not.toHaveBeenCalled();
+        expect(Order.findOneAndUpdate).not.toHaveBeenCalled();
+    });
+
+    test("rejects out-of-order timestamps without updating the order", async () => {
+        const previousTimestamp = new Date(Date.now() - 60_000);
+        const order = {
+            _id: new mongoose.Types.ObjectId(),
+            status: "Placed",
+            payment: { status: "succeeded" },
+            createdAt: previousTimestamp,
+            trackingHistory: [{ status: "Placed", occurredAt: previousTimestamp }]
+        };
+        Order.findById.mockResolvedValue(order);
+        const response = createResponse();
+
+        await updateTrackingStatus(
+            {
+                params: { orderId: order._id.toString() },
+                body: { status: "Shipped", occurredAt: "2020-01-01T00:00:00.000Z" }
+            },
+            response
+        );
+
+        expect(response.status).toHaveBeenCalledWith(400);
+        expect(Order.findOneAndUpdate).not.toHaveBeenCalled();
     });
 });

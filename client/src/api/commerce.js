@@ -39,6 +39,8 @@ export const reportBook = (bookId, reason, token) =>
     });
 
 export const getOrders = (token) => request("/api/orders", token);
+export const getPaymentGatewayStatus = () =>
+    request("/api/payments/razorpay/status", null);
 
 export const downloadOrderInvoice = async (orderId, token) => {
     const response = await fetch(

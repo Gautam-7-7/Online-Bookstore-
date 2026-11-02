@@ -2,9 +2,9 @@ const crypto = require("crypto");
 
 const verifyShippingWebhook = (req, res, next) => {
     const expected = process.env.SHIPPING_WEBHOOK_SECRET;
-    if (!expected) {
+    if (!expected || /replace|example|your[_ -]/i.test(expected)) {
         return res.status(503).json({
-            message: "Shipping status updates are not configured"
+            message: "Shipping webhook credentials are not configured with a real secret"
         });
     }
 

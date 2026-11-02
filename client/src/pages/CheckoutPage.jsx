@@ -4,6 +4,7 @@ import {
     createShippingAddress,
     deleteShippingAddress,
     getCart,
+    getPaymentGatewayStatus,
     getShippingAddresses,
     openRazorpayCheckout,
     setDefaultShippingAddress,
@@ -55,6 +56,7 @@ export default function CheckoutPage() {
     const [validatingCoupon, setValidatingCoupon] = useState(false);
     const [idempotencyKey, setIdempotencyKey] = useState(newIdempotencyKey);
     const [confirmedOrder, setConfirmedOrder] = useState(null);
+    const [paymentGatewayConfigured, setPaymentGatewayConfigured] = useState(null);
 
     const selectedAddress = useMemo(
         () => addresses.find((address) => address._id === selectedAddressId),
@@ -77,8 +79,12 @@ export default function CheckoutPage() {
 
     useEffect(() => {
         let ignore = false;
-        Promise.all([getCart(token), getShippingAddresses(token)])
-            .then(([cartData, addressData]) => {
+        Promise.all([
+            getCart(token),
+            getShippingAddresses(token),
+            getPaymentGatewayStatus()
+        ])
+            .then(([cartData, addressData, gatewayStatus]) => {
                 if (ignore) {
                     return;
                 }
@@ -86,6 +92,7 @@ export default function CheckoutPage() {
                 setSubtotal(cartData.subtotal || 0);
                 const nextAddresses = addressData.addresses || [];
                 setAddresses(nextAddresses);
+                setPaymentGatewayConfigured(gatewayStatus.configured);
                 setSelectedAddressId(
                     nextAddresses.find((address) => address.isDefault)?._id ||
                         nextAddresses[0]?._id ||
@@ -371,6 +378,11 @@ export default function CheckoutPage() {
 
             <aside className="checkout-summary">
                 <h2>Order summary</h2>
+                {paymentGatewayConfigured === false && (
+                    <p className="form-page__error" role="alert">
+                        Online payment is unavailable. The store administrator must add valid Razorpay test credentials to the backend configuration and restart the API.
+                    </p>
+                )}
                 {cart.items.map(({ book, quantity, lineTotal }) => (
                     <div className="checkout-summary__line" key={book._id}>
                         <span>{book.title} × {quantity}</span>
@@ -409,7 +421,11 @@ export default function CheckoutPage() {
                 )}
                 <button
                     className="search-bar__button"
-                    disabled={submitting || !selectedAddress}
+                    disabled={
+                        submitting ||
+                        !selectedAddress ||
+                        paymentGatewayConfigured === false
+                    }
                     onClick={handleCheckout}
                 >
                     {submitting ? "Opening secure checkout…" : "Continue to payment"}

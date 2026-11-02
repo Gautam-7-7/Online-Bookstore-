@@ -25,6 +25,13 @@ export const reviewReport = (id, action, note, token) =>
         body: JSON.stringify({ action, note })
     });
 export const getAdminUsers = (token) => request("/api/admin/users", token);
+export const getAdminTrackingOrders = (token) =>
+    request("/api/admin/orders/tracking", token);
+export const advanceAdminOrderTracking = (orderId, status, token) =>
+    request(`/api/admin/orders/${encodeURIComponent(orderId)}/tracking`, token, {
+        method: "PATCH",
+        body: JSON.stringify({ status })
+    });
 export const updateUserStatus = (id, action, token) =>
     request(`/api/admin/users/${encodeURIComponent(id)}`, token, {
         method: "PATCH",

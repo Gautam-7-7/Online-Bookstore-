@@ -169,6 +169,39 @@ describe("Razorpay gateway integration", () => {
         process.env.RAZORPAY_CURRENCY = "INR";
     });
 
+    test("rejects sample Razorpay credentials instead of sending them to the provider", async () => {
+        process.env.RAZORPAY_KEY_ID = "rzp_test_replace_me";
+
+        await expect(createRazorpayOrder({
+            amount: 100,
+            receipt: "local-order"
+        })).rejects.toMatchObject({
+            code: "not_configured",
+            status: 503,
+            message: expect.stringContaining("server/.env")
+        });
+        expect(global.fetch).not.toHaveBeenCalled();
+    });
+
+    test("identifies provider credential rejection without exposing provider details", async () => {
+        global.fetch.mockResolvedValue({
+            ok: false,
+            status: 401,
+            json: async () => ({
+                error: { code: "AUTHENTICATION_ERROR", description: "private provider detail" }
+            })
+        });
+
+        await expect(createRazorpayOrder({
+            amount: 100,
+            receipt: "local-order"
+        })).rejects.toMatchObject({
+            code: "invalid_credentials",
+            status: 503,
+            message: expect.stringContaining("same Razorpay mode")
+        });
+    });
+
     test("fetches authorized payment details and captures the exact amount", async () => {
         global.fetch
             .mockResolvedValueOnce({
