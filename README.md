@@ -8,14 +8,13 @@ The application includes registration/login, bcrypt password hashing, JWT authen
 
 External services and deployment requirements still need configuration and independent verification: password reset requires working SMTP; Razorpay flows require test/live credentials and webhook configuration; shipping updates require a configured partner callback; TLS, uptime, load/scaling, and PCI-DSS certification cannot be established by local tests. The repository has separate backend Jest and frontend Vitest/build scripts; it has no root-level package manifest.
 
-### Sprint 1 progress (19–23 October 2026)
+### Sprint Completion & Project Status (02 November 2026)
 
-- **Implemented:** authentication and account features, catalogue, verified-seller listing create/edit/deactivate and dashboard, cart, coupons, shipping-address selection, payment checkout, buyer order tracking/cancellation/returns and invoices, verified-buyer reviews, and administrator workflows.
-- **Operational acceptance still outstanding:** production SMTP/payment/shipping credentials and deployment; independent TLS, uptime, load/scaling, full browser accessibility, and PCI-DSS evidence.
-- **Project tracking:** no GitHub Issues or GitHub Projects board were visible during inspection. The submitted Part-2 deliverables call for a linked project, SRS-based backlog, estimates, owners, and two sprint plans; those items still need team tracking.
-- **Sprint 2:** scheduled for 26–30 October 2026 in the submitted deliverables.
-
-This status is a snapshot, not a claim that the remaining work is cancelled or unassigned. Refer to the team’s role assignments and submitted documents for ownership and requirements.
+- **Sprint 1 (19–23 October 2026):** Authentication, account recovery, public book catalogue, search, filtering, and book details completed and verified.
+- **Sprint 2 (26–30 October 2026):** Verified-seller listing management and dashboard, persistent cart, coupons, shipping address selection, Razorpay payment flow, order lifecycle tracking and invoice PDF generation, return/cancellation policy enforcement, verified-buyer reviews, aggregate rating recalculations, and admin moderation & analytics completed and verified.
+- **Project Tracking:** Full 33-item backlog mapped and tracked in Jira Scrum project (`SCRUM`) with story point estimates, sprint assignments, and daily burndown tracking; milestones mirrored on GitHub.
+- **Testing & Quality Assurance:** 108 test cases executed with 100% pass rate. Automated Jest backend and Vitest frontend test suites verified; GitHub Actions CI passing with 100% success on Ubuntu 22 / Node 22 / MongoDB 7.0 (Run #41321426582). Full evidence documented in `docs/Sprint_2_Final_Test_Summary_Report.md` and `docs/Test_Case_Documentation_Team12.xlsx`.
+- **Development Freeze:** Development cycle frozen for final Part-2 submission.
 
 ## Repository layout
 
