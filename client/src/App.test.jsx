@@ -62,10 +62,15 @@ const renderApp = (initialEntries = ["/"]) =>
     );
 
 describe("catalogue frontend", () => {
+    let paymentGatewayConfigured = true;
+    let adminTrackingOrders = [];
+
     beforeEach(() => {
         cleanup();
         vi.restoreAllMocks();
         localStorage.clear();
+        paymentGatewayConfigured = true;
+        adminTrackingOrders = [{ ...placedOrder, buyer: { name: "Reader", email: "reader@example.com" } }];
         const savedAddresses = [homeAddress];
         const savedOrders = [placedOrder];
         global.fetch = vi.fn((url, options = {}) => {
@@ -177,6 +182,44 @@ describe("catalogue frontend", () => {
                         activeSellers: 1,
                         users: { total: 3, suspended: 0, verifiedSellers: 1 },
                         listings: { total: 2, active: 2, flagged: 0 }
+                    })
+                });
+            }
+            if (url.endsWith("/api/admin/orders/tracking") && (!options.method || options.method === "GET")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ orders: adminTrackingOrders })
+                });
+            }
+            if (url.endsWith("/api/admin/orders/order-1/tracking") && options.method === "PATCH") {
+                adminTrackingOrders = adminTrackingOrders.map((order) => ({
+                    ...order,
+                    status: JSON.parse(options.body).status,
+                    trackingHistory: [
+                        ...order.trackingHistory,
+                        {
+                            status: JSON.parse(options.body).status,
+                            occurredAt: "2026-10-29T10:00:00.000Z",
+                            source: "administrator"
+                        }
+                    ]
+                }));
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({ order: adminTrackingOrders[0] })
+                });
+            }
+            if (url.endsWith("/api/payments/razorpay/status")) {
+                return Promise.resolve({
+                    ok: true,
+                    status: 200,
+                    json: async () => ({
+                        configured: paymentGatewayConfigured,
+                        ...(paymentGatewayConfigured
+                            ? {}
+                            : { message: "Razorpay test credentials are missing" })
                     })
                 });
             }
@@ -650,6 +693,23 @@ describe("catalogue frontend", () => {
         });
     });
 
+    test("explains disabled payment when the gateway is not configured", async () => {
+        paymentGatewayConfigured = false;
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "signed-token",
+                user: { id: "user-1", name: "Reader", email: "reader@example.com" }
+            })
+        );
+        renderApp(["/checkout"]);
+
+        expect(await screen.findByRole("alert")).toHaveTextContent(
+            "Online payment is unavailable"
+        );
+        expect(screen.getByRole("button", { name: "Continue to payment" })).toBeDisabled();
+    });
+
     test("shows buyer order tracking and submits cancellation requests", async () => {
         localStorage.setItem(
             "online-bookstore-auth",
@@ -753,6 +813,32 @@ describe("catalogue frontend", () => {
         fireEvent.click(screen.getByRole("button", { name: "Accounts" }));
         expect(screen.getByText("seller@example.com")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Verify seller" })).toBeInTheDocument();
+    });
+
+    test("lets administrators advance order tracking", async () => {
+        localStorage.setItem(
+            "online-bookstore-auth",
+            JSON.stringify({
+                token: "admin-token",
+                user: { id: "admin-1", name: "Admin", email: "admin@example.com", role: "admin" }
+            })
+        );
+        renderApp(["/admin"]);
+        await screen.findByRole("heading", { name: "Administrator dashboard" });
+        fireEvent.click(screen.getByRole("button", { name: "Order tracking" }));
+        expect(await screen.findByText("Order order-1")).toBeInTheDocument();
+        fireEvent.click(screen.getByRole("button", { name: "Mark shipped" }));
+
+        expect(await screen.findByRole("status")).toHaveTextContent(
+            "Order tracking advanced to Shipped."
+        );
+        expect(global.fetch).toHaveBeenCalledWith(
+            "/api/admin/orders/order-1/tracking",
+            expect.objectContaining({
+                method: "PATCH",
+                body: JSON.stringify({ status: "Shipped" })
+            })
+        );
     });
 
     test("lets a buyer request a return for a delivered order", async () => {

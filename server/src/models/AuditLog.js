@@ -16,7 +16,7 @@ const auditLogSchema = new mongoose.Schema(
         targetType: {
             type: String,
             required: true,
-            enum: ["book", "user", "coupon", "report"]
+            enum: ["book", "user", "coupon", "report", "order"]
         },
         targetId: {
             type: String,

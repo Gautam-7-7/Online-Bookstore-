@@ -79,6 +79,24 @@ npm test -- --runInBand
 
 A simple API smoke check after startup is `curl http://localhost:5000/`.
 
+### Deploying the API on Render for Razorpay webhooks
+
+The root `render.yaml` defines the API web service. Push the repository to
+GitHub, create a Render Blueprint from that repository, and provide the
+environment values when prompted: a MongoDB Atlas connection URI, Razorpay
+Test Mode Key ID and Key Secret, and a webhook secret you choose. Render
+generates the JWT secret. Keep all secrets in Render's environment settings;
+do not commit them.
+
+After the first deploy, copy the API service's `https://...onrender.com` URL
+and check its `/` health endpoint. In the Razorpay Test Mode dashboard, create
+the webhook at
+`https://<render-api-host>/api/payments/razorpay/webhook`, enter the same
+webhook secret configured in Render, and enable `payment.captured`,
+`payment.failed`, `refund.processed`, and `refund.failed`. Redeploy if you
+change server environment settings. Render must have a reachable MongoDB
+database and valid Razorpay Test Mode keys for payment processing.
+
 The client uses a Vite proxy to forward `/api` requests to `http://localhost:5000` during development:
 
 ```bash
@@ -153,6 +171,9 @@ user.
 - `POST /api/orders/:orderId/tracking` — courier callback with `status` and
   optional `occurredAt`, authenticated by `x-shipping-webhook-secret`; stages
   must advance in order.
+- `/admin` → **Order tracking** lets an administrator advance each paid order
+  one delivery stage at a time when no courier callback is configured. These
+  actions are audit logged. Buyers can use **Refresh tracking** on `/orders`.
 - `POST /api/reviews` — submit a 1–5 star review only for a delivered,
   successfully paid order line. `GET /api/reviews/eligibility/:bookId` (JWT)
   returns eligible delivered orders; `GET /api/reviews/books/:bookId` and
@@ -202,10 +223,21 @@ PCI-DSS certification: production deployment must enforce TLS, protect
 secrets, verify deployment configuration, and complete the applicable
 compliance assessment.
 
+For local payment testing, enable Test Mode in the Razorpay Dashboard, create
+test API keys, and set the matching `RAZORPAY_KEY_ID` and
+`RAZORPAY_KEY_SECRET` in `server/.env`. Restart the backend after changing
+`.env`; never use production keys for local tests. Checkout checks the API's
+public readiness endpoint and explains when keys are missing. A real charge
+cannot be made until valid provider credentials and an eligible Razorpay
+account are supplied.
+
 Shipping callbacks require `SHIPPING_WEBHOOK_SECRET`; without it, status
-updates are disabled. Keep this secret out of source control. The shipping
-integration should additionally verify provider signatures before production
-use.
+updates from a courier are disabled. Set a long random secret in the backend
+and send it in the `x-shipping-webhook-secret` header from your trusted courier
+integration. Keep it out of source control. Before production, replace the
+shared-secret callback with the shipping provider's signed webhook verification
+if it supports signatures. In local development, administrators can advance
+paid orders in the dashboard instead.
 
 ### Accounts and administration
 

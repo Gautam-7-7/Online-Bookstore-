@@ -17,10 +17,15 @@ const getConfig = () => {
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
     const currency = process.env.RAZORPAY_CURRENCY || DEFAULT_CURRENCY;
 
-    if (!keyId || !keySecret) {
+    if (
+        !keyId ||
+        !keySecret ||
+        /replace|example|your[_ -]/i.test(keyId) ||
+        /replace|example|your[_ -]/i.test(keySecret)
+    ) {
         throw new PaymentGatewayError(
             "not_configured",
-            "Razorpay is not configured",
+            "Razorpay test credentials are missing. Add your Key ID and Key Secret to server/.env, then restart the backend.",
             503
         );
     }
@@ -68,6 +73,13 @@ const razorpayRequest = async (path, { method = "GET", body, headers = {} } = {}
     }
 
     if (!response.ok) {
+        if ([401, 403].includes(response.status)) {
+            throw new PaymentGatewayError(
+                "invalid_credentials",
+                "Razorpay rejected the server credentials. Check that the Key ID and Key Secret belong to the same Razorpay mode.",
+                503
+            );
+        }
         const code = data?.error?.code === "BAD_REQUEST_ERROR" ? "rejected" : "unavailable";
         throw new PaymentGatewayError(
             code,

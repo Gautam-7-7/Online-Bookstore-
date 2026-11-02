@@ -5,6 +5,7 @@ const Coupon = require("../models/Coupon");
 const ModerationReport = require("../models/ModerationReport");
 const Order = require("../models/Order");
 const User = require("../models/User");
+const { advanceOrderTracking, NEXT_ORDER_STATUS } = require("../services/orderTracking");
 
 const isValidObjectId = (value) =>
     typeof value === "string" && mongoose.Types.ObjectId.isValid(value);
@@ -255,6 +256,76 @@ const getAdminCoupons = async (req, res) => {
     }
 };
 
+const getAdminTrackingOrders = async (req, res) => {
+    try {
+        const statuses = Object.keys(NEXT_ORDER_STATUS);
+        const orders = await Order.find({
+            "payment.status": "succeeded",
+            status: { $in: statuses }
+        })
+            .populate("buyer", "name email")
+            .sort({ createdAt: -1 })
+            .limit(200)
+            .lean();
+        return res.status(200).json({ orders });
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to retrieve orders for tracking" });
+    }
+};
+
+const advanceAdminOrderTracking = async (req, res) => {
+    const { orderId } = req.params;
+    const { status } = req.body || {};
+    if (!isValidObjectId(orderId)) {
+        return res.status(400).json({ message: "Invalid order ID" });
+    }
+
+    try {
+        const result = await advanceOrderTracking({
+            orderId: orderId.toLowerCase(),
+            status,
+            source: "administrator"
+        });
+        if (result.type === "not_found") {
+            return res.status(404).json({ message: "Confirmed order not found" });
+        }
+        if (result.type === "invalid_status") {
+            return res.status(400).json({ message: "Invalid tracking status" });
+        }
+        if (result.type === "invalid_transition") {
+            return res.status(409).json({
+                message: `Order status must advance to ${result.expectedStatus || "no further stage"}`
+            });
+        }
+        if (result.type === "invalid_timestamp") {
+            return res.status(400).json({ message: "Invalid tracking event timestamp" });
+        }
+        if (result.type === "concurrent_update") {
+            return res.status(409).json({
+                message: "Order status changed concurrently; reload and retry"
+            });
+        }
+
+        try {
+            await writeAuditLog(
+                req.user.id,
+                "order.tracking.advance",
+                "order",
+                result.order._id,
+                { status }
+            );
+        } catch (error) {
+            return res.status(503).json({
+                message: "Tracking status was updated, but its audit record could not be saved",
+                order: result.order
+            });
+        }
+        return res.status(200).json({ order: result.order });
+    } catch (error) {
+        return res.status(500).json({ message: "Failed to advance order tracking" });
+    }
+};
+
 const createCoupon = async (req, res) => {
     const body = req.body || {};
     const code = typeof body.code === "string" ? body.code.trim().toUpperCase() : "";
@@ -339,10 +410,12 @@ module.exports = {
     createCoupon,
     getAdminAnalytics,
     getAdminCoupons,
+    getAdminTrackingOrders,
     getAuditLogs,
     getModerationQueue,
     getUsers,
     reviewModerationReport,
+    advanceAdminOrderTracking,
     updateCouponStatus,
     updateUserStatus
 };

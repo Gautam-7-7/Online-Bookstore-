@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+    advanceAdminOrderTracking,
     createAdminCoupon,
     getAdminAnalytics,
     getAdminCoupons,
+    getAdminTrackingOrders,
     getAdminUsers,
     getAuditLogs,
     getModerationQueue,
@@ -12,7 +14,12 @@ import {
 } from "../api/admin.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 
-const TABS = ["Overview", "Moderation", "Accounts", "Coupons", "Audit log"];
+const TABS = ["Overview", "Moderation", "Accounts", "Order tracking", "Coupons", "Audit log"];
+const NEXT_TRACKING_STATUS = {
+    Placed: "Shipped",
+    Shipped: "Out for Delivery",
+    "Out for Delivery": "Delivered"
+};
 
 const EMPTY_COUPON = {
     code: "",
@@ -29,6 +36,7 @@ export default function AdminDashboardPage() {
     const [analytics, setAnalytics] = useState(null);
     const [reports, setReports] = useState([]);
     const [users, setUsers] = useState([]);
+    const [trackingOrders, setTrackingOrders] = useState([]);
     const [coupons, setCoupons] = useState([]);
     const [auditLogs, setAuditLogs] = useState([]);
     const [couponValues, setCouponValues] = useState(EMPTY_COUPON);
@@ -39,16 +47,18 @@ export default function AdminDashboardPage() {
     const [message, setMessage] = useState("");
 
     const loadAdminData = useCallback(async () => {
-        const [summary, moderation, accountData, couponData, logs] = await Promise.all([
+        const [summary, moderation, accountData, trackingData, couponData, logs] = await Promise.all([
             getAdminAnalytics(token),
             getModerationQueue(token),
             getAdminUsers(token),
+            getAdminTrackingOrders(token),
             getAdminCoupons(token),
             getAuditLogs(token)
         ]);
         setAnalytics(summary);
         setReports(moderation.reports);
         setUsers(accountData.users);
+        setTrackingOrders(trackingData.orders);
         setCoupons(couponData.coupons);
         setAuditLogs(logs.auditLogs);
     }, [token]);
@@ -59,14 +69,16 @@ export default function AdminDashboardPage() {
             getAdminAnalytics(token),
             getModerationQueue(token),
             getAdminUsers(token),
+            getAdminTrackingOrders(token),
             getAdminCoupons(token),
             getAuditLogs(token)
         ])
-            .then(([summary, moderation, accountData, couponData, logs]) => {
+            .then(([summary, moderation, accountData, trackingData, couponData, logs]) => {
                 if (!ignore) {
                     setAnalytics(summary);
                     setReports(moderation.reports);
                     setUsers(accountData.users);
+                    setTrackingOrders(trackingData.orders);
                     setCoupons(couponData.coupons);
                     setAuditLogs(logs.auditLogs);
                 }
@@ -269,6 +281,44 @@ export default function AdminDashboardPage() {
                             ))}
                         </tbody>
                     </table>
+                </div>
+            )}
+
+            {activeTab === "Order tracking" && (
+                <div className="admin-record-list">
+                    {!trackingOrders.length && (
+                        <p className="state state--empty">No paid orders currently need delivery updates.</p>
+                    )}
+                    {trackingOrders.map((order) => {
+                        const nextStatus = NEXT_TRACKING_STATUS[order.status];
+                        return (
+                            <article className="admin-record admin-tracking-order" key={order._id}>
+                                <div>
+                                    <h2>Order {order._id}</h2>
+                                    <p>{order.buyer?.name || "Buyer"} · {order.buyer?.email || ""}</p>
+                                    <p>Current status: <strong>{order.status}</strong></p>
+                                    <p>{order.items.map((item) => `${item.title} × ${item.quantity}`).join(", ")}</p>
+                                </div>
+                                {nextStatus && (
+                                    <button
+                                        className="btn"
+                                        disabled={submitting}
+                                        onClick={() =>
+                                            runAction(
+                                                () => advanceAdminOrderTracking(order._id, nextStatus, token),
+                                                `Order tracking advanced to ${nextStatus}.`
+                                            )
+                                        }
+                                    >
+                                        Mark {nextStatus.toLowerCase()}
+                                    </button>
+                                )}
+                            </article>
+                        );
+                    })}
+                    <p className="form-page__hint">
+                        Only paid orders are listed. Each action advances exactly one delivery stage and is recorded in the audit log.
+                    </p>
                 </div>
             )}
 

@@ -1003,6 +1003,27 @@ a {
     margin-bottom: 24px;
 }
 
+.admin-tracking-order {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+}
+
+.admin-tracking-order h2,
+.admin-tracking-order p {
+    overflow-wrap: anywhere;
+}
+
+.orders-page__heading {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.orders-page__heading h1 {
+    margin: 0;
+}
+
 :focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 2px;
@@ -1103,5 +1124,15 @@ a {
     .admin-coupon {
         grid-template-columns: 1fr;
         justify-items: start;
+    }
+
+    .admin-tracking-order {
+        grid-template-columns: 1fr;
+        justify-items: start;
+    }
+
+    .orders-page__heading {
+        align-items: flex-start;
+        flex-direction: column;
     }
 }

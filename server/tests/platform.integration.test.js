@@ -26,6 +26,7 @@ let adminToken;
 let buyerToken;
 let otherToken;
 let createdOrderId;
+let trackingOrderId;
 let resetToken;
 const previousResetUrl = process.env.PASSWORD_RESET_URL;
 
@@ -63,7 +64,9 @@ describe("Remaining SRS account, invoice and administration workflows", () => {
             ModerationReport.deleteMany({ reporter: { $in: Object.values(ids) } }),
             Book.deleteMany({ sellerId: ids.buyer }),
             Coupon.deleteMany({ code: { $regex: `^SRS${runId.slice(-8).toUpperCase()}` } }),
-            Order.deleteMany({ _id: createdOrderId }),
+            Order.deleteMany({
+                _id: { $in: [createdOrderId, trackingOrderId].filter(Boolean) }
+            }),
             User.deleteMany({ _id: { $in: Object.values(ids) } })
         ]);
         if (previousResetUrl === undefined) {
@@ -221,6 +224,79 @@ describe("Remaining SRS account, invoice and administration workflows", () => {
             .set("Authorization", `Bearer ${adminToken}`);
         expect(logs.status).toBe(200);
         expect(logs.body.auditLogs.some((log) => log.action === "coupon.create")).toBe(true);
+    });
+
+    test("administrator can advance paid-order tracking and buyers see the update", async () => {
+        const order = await Order.create({
+            buyer: ids.buyer,
+            idempotencyKey: `tracking-${runId}`,
+            items: [{
+                book: new mongoose.Types.ObjectId(),
+                title: "Tracking Test Book",
+                seller: "Verified Buyer",
+                sellerId: ids.buyer,
+                quantity: 1,
+                unitPrice: 40
+            }],
+            subtotal: 40,
+            discount: 0,
+            total: 40,
+            currency: "INR",
+            shippingAddress: {
+                fullName: "Updated Buyer",
+                addressLine1: "1 Test Lane",
+                city: "Pune",
+                state: "Maharashtra",
+                postalCode: "411001",
+                country: "India",
+                phone: "9876543210"
+            },
+            payment: {
+                provider: "razorpay",
+                transactionId: "pay_test_tracking",
+                status: "succeeded"
+            },
+            status: "Placed",
+            trackingHistory: [{
+                status: "Placed",
+                occurredAt: new Date(Date.now() - 60_000),
+                source: "razorpay"
+            }]
+        });
+        trackingOrderId = order._id;
+
+        const queue = await request(app)
+            .get("/api/admin/orders/tracking")
+            .set("Authorization", `Bearer ${adminToken}`);
+        expect(queue.status).toBe(200);
+        expect(queue.body.orders.some((queued) => queued._id === order._id.toString())).toBe(true);
+
+        const update = await request(app)
+            .patch(`/api/admin/orders/${order._id}/tracking`)
+            .set("Authorization", `Bearer ${adminToken}`)
+            .send({ status: "Shipped" });
+        expect(update.status).toBe(200);
+        expect(update.body.order.status).toBe("Shipped");
+        expect(update.body.order.trackingHistory.at(-1)).toMatchObject({
+            status: "Shipped",
+            source: "administrator"
+        });
+        expect(await AuditLog.exists({
+            action: "order.tracking.advance",
+            targetId: order._id.toString()
+        })).toBeTruthy();
+
+        const skipped = await request(app)
+            .patch(`/api/admin/orders/${order._id}/tracking`)
+            .set("Authorization", `Bearer ${adminToken}`)
+            .send({ status: "Delivered" });
+        expect(skipped.status).toBe(409);
+
+        const buyerOrders = await request(app)
+            .get("/api/orders")
+            .set("Authorization", `Bearer ${buyerToken}`);
+        expect(buyerOrders.body.orders.find((item) => item._id === order._id.toString()).status)
+            .toBe("Shipped");
     });
 
     test("generates paid-order PDF invoices only for their buyer", async () => {
