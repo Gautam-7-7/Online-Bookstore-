@@ -303,23 +303,24 @@ requirements to test cases. Primary planned cases:
   TC-Sec-05     BOOK-SR-004
   TC-Sec-06     BOOK-SR-005
 
-# 14. Test Metrics & Reporting (Sprint 2 Final Results)
+# 14. Test Metrics & Reporting (Sprint 2 Evidence Reconciliation)
 
-- **Total Test Cases Planned / Executed:** 108 / 108 (100% execution rate).
-- **Test Results:** 108 Passed, 0 Failed, 0 Blocked (**100% Pass Rate**).
-- **Automated Test Suites:** 13 suites passed (56 Jest backend tests + 19 Vitest frontend tests).
-- **CI Build Pipeline:** GitHub Actions Run #41321426582 passed with 100% success (Node 22, MongoDB 7.0).
-- **Requirement Coverage:** 100% (All 23 Functional, 5 NFR, and 5 Security requirements verified).
-- **Defect Closure Status:** All 4 identified defects (DEF-01 through DEF-04) verified and closed.
-- **Detailed Reports:** Full execution evidence recorded in docs/Test_Case_Documentation_Team12.xlsx and docs/Sprint_2_Final_Test_Summary_Report.md.
+- **Workbook cases:** 108 unique cases; 106 Pass, 0 Fail, 0 Blocked, and 2 Not Run.
+- **Backend automation:** 17 Jest suites and 110 tests passed locally and in CI.
+- **Frontend automation:** 19 Vitest tests passed; the production build passed.
+- **CI:** GitHub Actions run #41445263666 passed both backend and frontend jobs on Node 22 and MongoDB 7.0.
+- **Requirement verification:** Functional and source-level security behavior is implemented; deployment-level performance, uptime, TLS, PCI-DSS, accessibility, and scalability evidence remains pending where no report exists.
+- **Defect closure:** DEF-01 through DEF-04 are covered by automated regression tests; no new defect was reproduced in this audit.
+- **Manual acceptance:** Browser execution and live external-service testing were not performed.
+- **Detailed evidence:** `docs/Test_Case_Documentation_Team12.xlsx` and `docs/Sprint_2_Final_Test_Summary_Report.md`.
 
 # 15. Approvals & Sign-Off
 
   Role                                 Name                 Signature / Date
   ------------------------------------ -------------------- -------------------------
-  QA Lead                              D Sai Karthik        Approved / 02-Nov-2026
-  Dev Lead                             Gautam               Approved / 02-Nov-2026
-  Course Coordinator / Committee       Faculty Evaluation   Submitted / 02-Nov-2026
+  QA Lead                              D Sai Karthik        Evidence reconciled; limitations recorded / 02-Nov-2026
+  Dev Lead                             Gautam               Automated checks pass; deployment evidence pending / 02-Nov-2026
+  Course Coordinator / Committee       Faculty Evaluation   Pending / 02-Nov-2026
 
 # Appendix A --- Detailed Test Case Matrix
 

@@ -2,7 +2,7 @@
 
 A college Software Engineering mini-project with an Express/Mongoose API and a React/Vite client. The frontend supports public catalogue browsing, search, filters and sorting; registration and login; seller listing management; and buyer cart, coupon, shipping-address checkout, order tracking, cancellation/return requests, and verified-purchase reviews.
 
-## Repository status (inspected 30 October 2026)
+## Repository status (inspected 02 November 2026)
 
 The application includes registration/login, bcrypt password hashing, JWT authentication, account lockout, profile editing and password recovery; public catalogue search; verified-seller listing management; persistent carts and saved addresses; coupon and Razorpay checkout; order tracking, cancellation/returns and downloadable invoices; verified-purchase reviews; and administrator moderation, account controls, coupon management and analytics.
 
@@ -12,9 +12,9 @@ External services and deployment requirements still need configuration and indep
 
 - **Sprint 1 (19–23 October 2026):** Authentication, account recovery, public book catalogue, search, filtering, and book details completed and verified.
 - **Sprint 2 (26–30 October 2026):** Verified-seller listing management and dashboard, persistent cart, coupons, shipping address selection, Razorpay payment flow, order lifecycle tracking and invoice PDF generation, return/cancellation policy enforcement, verified-buyer reviews, aggregate rating recalculations, and admin moderation & analytics completed and verified.
-- **Project Tracking:** Full 33-item backlog mapped and tracked in Jira Scrum project (`SCRUM`) with story point estimates, sprint assignments, and daily burndown tracking; milestones mirrored on GitHub.
-- **Testing & Quality Assurance:** 108 test cases executed with 100% pass rate. Automated Jest backend and Vitest frontend test suites verified; GitHub Actions CI passing with 100% success on Ubuntu 22 / Node 22 / MongoDB 7.0 (Run #41321426582). Full evidence documented in `docs/Sprint_2_Final_Test_Summary_Report.md` and `docs/Test_Case_Documentation_Team12.xlsx`.
-- **Development Freeze:** Development cycle frozen for final Part-2 submission.
+- **Project Tracking:** Sprint 2 is tracked through GitHub Issues and the Sprint 2 milestone. A repository-linked GitHub Project board was not verified; Jira is not required by the course and is not claimed here.
+- **Testing & Quality Assurance:** The workbook contains 108 cases: 106 Pass and 2 Not Run because reproducible performance/TLS reports are absent. The backend suite passed 110 tests, the frontend suite passed 19 tests, and the production build passed. GitHub Actions run [#41445263666](https://github.com/Gautam-7-7/Online-Bookstore-/actions/runs/41445263666) passed both jobs on Node 22 / MongoDB 7.0.
+- **Release status:** Main commit `cabe67fdb0656cf56af9058924a7db2ab2b19cca` has successful CI, but `v2.0-sprint2-final` is not present locally or remotely. Freeze approval and tagging remain open in issue #21.
 
 ## Repository layout
 
@@ -231,8 +231,8 @@ certification.
 
 ## GitHub Actions and pull requests
 
-`.github/workflows/ci.yml` runs on every push and pull request (and can also be started manually). It sets up Node.js 22, caches npm dependencies using `server/package-lock.json`, installs with `npm ci`, checks backend JavaScript syntax, and runs the Jest suite against an ephemeral MongoDB 7 service. The workflow uses only a test-only `JWT_SECRET`; it needs no repository secrets. Frontend tests/build are available locally but are not currently included in this workflow.
+`.github/workflows/ci.yml` runs on every push and pull request (and can also be started manually). It sets up Node.js 22, installs each locked dependency set with `npm ci`, checks backend JavaScript syntax, runs the Jest suite against an ephemeral MongoDB 7 service, runs frontend Vitest tests, and builds the frontend. The workflow uses only a test-only `JWT_SECRET`; it needs no repository secrets.
 
-To review a check, open the pull request and select **Checks**, or open the repository’s **Actions** tab. A red check links to its logs; resolve the failure on the feature branch and push an update. A green check is evidence only for the configured backend checks.
+To review a check, open the pull request and select **Checks**, or open the repository’s **Actions** tab. A red check links to its logs; resolve the failure on the feature branch and push an update. A green check is evidence only for the configured automated checks, not for manual acceptance or production integrations.
 
 Contributors should work on a feature branch, commit only their assigned scope, push the branch, and open a pull request against `main`. Do not push directly to `main`; wait for review and the applicable checks before merging. The PR should summarize changes, validation, and known limitations.

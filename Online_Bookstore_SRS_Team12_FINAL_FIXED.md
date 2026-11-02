@@ -296,18 +296,18 @@ eview-eligibility.test.js, BookDetailsPage.jsx, PR #14 |
 atings.services.test.js, BookDetailsPage.jsx, PR #14 |
 | BOOK-F-022 | Moderate listings/reports | 4.7 / DS-Admin-01 | AdminModule | TC-Admin-01 | **D** | dminController.js, AdminDashboardPage.jsx, PR #17 |
 | BOOK-F-023 | Suspend/verify + analytics | 4.7 / DS-Admin-02 | AdminModule | TC-Admin-02 | **D** | dminController.js, AdminDashboardPage.jsx, PR #17 |
-| BOOK-NF-001 | Response time target (3s) | 5 / DS-Perf-01 | WebUI / API | TC-Perf-01 | **D** | Benchmarked response time avg 142ms (<3.0s target) |
-| BOOK-NF-002 | Uptime 99.5% | 5 / DS-Ops-01 | Infra / Monitoring | Ops reports | **D** | GitHub Actions CI health-checks & mongo service uptime verified |
-| BOOK-NF-003 | PCI-DSS compliance | 5 / DS-Sec-01 | Payment / Security | TC-Sec-01 | **D** | Razorpay mock tokenization; 0 raw card data stored in MongoDB |
-| BOOK-NF-004 | Responsive/accessible UI | 5 / DS-UX-01 | WebUI | TC-UX-01 | **D** | Responsive layout across mobile, tablet, desktop in styles.css |
-| BOOK-NF-005 | Horizontal scalability | 5 / DS-Scale-01 | Catalog / Order services | TC-Scale-01 | **D** | Stateless JWT authentication and modular service architecture |
-| BOOK-SR-001 | TLS 1.2+ | 5.1.2 / DS-Sec-02 | Infra / Network | TC-Sec-02 | **D** | Enforced on all external/API communication channels |
+| BOOK-NF-001 | Response time target (3s) | 5 / DS-Perf-01 | WebUI / API | TC-Perf-01 | **P** | No reproducible load-test report committed; workbook case is Not Run |
+| BOOK-NF-002 | Uptime 99.5% | 5 / DS-Ops-01 | Infra / Monitoring | Ops reports | **P** | CI health checks do not establish monthly production uptime; monitoring evidence pending |
+| BOOK-NF-003 | PCI-DSS compliance | 5 / DS-Sec-01 | Payment / Security | TC-Sec-01 | **P** | Hosted/tokenized payment architecture and no raw card fields are implemented; PCI-DSS assessment pending |
+| BOOK-NF-004 | Responsive/accessible UI | 5 / DS-UX-01 | WebUI | TC-UX-01 | **P** | One automated accessibility test and responsive CSS exist; complete WCAG audit pending |
+| BOOK-NF-005 | Horizontal scalability | 5 / DS-Scale-01 | Catalog / Order services | TC-Scale-01 | **P** | Stateless/modular code supports scaling conceptually; no multi-instance load report exists |
+| BOOK-SR-001 | TLS 1.2+ | 5.1.2 / DS-Sec-02 | Infra / Network | TC-Sec-02 | **P** | Deployment TLS was not scanned; workbook case is Not Run |
 | BOOK-SR-002 | Password hashing | 5.1.2 / DS-Sec-03 | AuthModule | TC-Sec-03 | **D** | Salted bcrypt with 10 salt rounds in User.js |
-| BOOK-SR-003 | Payment tokenisation | 5.1.2 / DS-Sec-04 | CheckoutModule | TC-Sec-04 | **D** | Verified via paymentGateway.js and checkout.test.js |
+| BOOK-SR-003 | Payment tokenisation | 5.1.2 / DS-Sec-04 | CheckoutModule | TC-Sec-04 | **D** | Source and automated tests verify gateway-hosted payment flow and rejection of raw payment fields |
 | BOOK-SR-004 | Account lockout | 5.1.2 / DS-Sec-05 | AuthModule | TC-Sec-05 | **D** | 5 consecutive failures = 15 min lockout in uthController.js |
-| BOOK-SR-005 | Input validation/sanitisation | 5.1.2 / DS-Sec-06 | All modules | TC-Sec-06 | **D** | Sanitization and schema validation across all Express routes |
+| BOOK-SR-005 | Input validation/sanitisation | 5.1.2 / DS-Sec-06 | All modules | TC-Sec-06 | **P** | Route/schema validation is implemented and tested; no OWASP ZAP report is committed |
 
-All 33 requirements are fully implemented, verified, and evidenced across unit, integration, and UI test suites. Development is frozen for Sprint 2 release.
+Status policy: **D** means implemented and verified by reproducible source/test evidence; **P** means implemented or partially supported but verification evidence is pending; **N** means not implemented. Sprint 2 implementation is substantially complete, but the P-status deployment and release evidence remains open.
 
 ## Document consistency checks completed
 
