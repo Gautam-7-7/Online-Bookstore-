@@ -20,6 +20,42 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true
         },
+        role: {
+            type: String,
+            enum: ["buyer", "seller", "admin"],
+            default: "buyer",
+            index: true
+        },
+        isSellerVerified: {
+            type: Boolean,
+            default: false
+        },
+        isSuspended: {
+            type: Boolean,
+            default: false,
+            index: true
+        },
+        phone: {
+            type: String,
+            trim: true,
+            maxlength: 30,
+            default: ""
+        },
+        passwordResetTokenHash: {
+            type: String,
+            default: null,
+            select: false
+        },
+        passwordResetExpiresAt: {
+            type: Date,
+            default: null,
+            select: false
+        },
+        passwordResetRequestedAt: {
+            type: Date,
+            default: null,
+            select: false
+        },
 
         failedLoginAttempts: {
             type: Number,

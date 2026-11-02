@@ -1,17 +1,17 @@
 # Online Bookstore — Team 12
 
-A college Software Engineering mini-project with an Express/Mongoose API and a React/Vite client. The working frontend supports the public catalogue, search, filters, sorting, book details, registration, login, and authenticated book listing.
+A college Software Engineering mini-project with an Express/Mongoose API and a React/Vite client. The frontend supports public catalogue browsing, search, filters and sorting; registration and login; seller listing management; and buyer cart, coupon, shipping-address checkout, order tracking, cancellation/return requests, and verified-purchase reviews.
 
-## Repository status (inspected 27 October 2026)
+## Repository status (inspected 30 October 2026)
 
-The authentication backend provides registration and login, bcrypt password hashing, JWT issuance, and failed-login tracking/temporary lockout. The book API provides a searchable, filterable, sortable, paginated public catalogue, book details, and book creation. Creating a book now requires a valid login token; the backend derives the displayed seller name from that token rather than accepting a client-provided seller.
+The application includes registration/login, bcrypt password hashing, JWT authentication, account lockout, profile editing and password recovery; public catalogue search; verified-seller listing management; persistent carts and saved addresses; coupon and Razorpay checkout; order tracking, cancellation/returns and downloadable invoices; verified-purchase reviews; and administrator moderation, account controls, coupon management and analytics.
 
-The seller model is not implemented: there are no seller roles, seller-specific listing management, edit/deactivate flows, reviews, carts, or orders. Any authenticated user can currently create a listing. The repository has separate backend Jest and frontend Vitest/build scripts; it has no root-level package manifest.
+External services and deployment requirements still need configuration and independent verification: password reset requires working SMTP; Razorpay flows require test/live credentials and webhook configuration; shipping updates require a configured partner callback; TLS, uptime, load/scaling, and PCI-DSS certification cannot be established by local tests. The repository has separate backend Jest and frontend Vitest/build scripts; it has no root-level package manifest.
 
 ### Sprint 1 progress (19–23 October 2026)
 
-- **Implemented:** authentication, catalogue APIs, catalogue and book detail pages, and login-protected book creation.
-- **Still outstanding:** seller roles and listing management, plus other later bookstore workflows such as reviews, cart, checkout, and orders.
+- **Implemented:** authentication and account features, catalogue, verified-seller listing create/edit/deactivate and dashboard, cart, coupons, shipping-address selection, payment checkout, buyer order tracking/cancellation/returns and invoices, verified-buyer reviews, and administrator workflows.
+- **Operational acceptance still outstanding:** production SMTP/payment/shipping credentials and deployment; independent TLS, uptime, load/scaling, full browser accessibility, and PCI-DSS evidence.
 - **Project tracking:** no GitHub Issues or GitHub Projects board were visible during inspection. The submitted Part-2 deliverables call for a linked project, SRS-based backlog, estimates, owners, and two sprint plans; those items still need team tracking.
 - **Sprint 2:** scheduled for 26–30 October 2026 in the submitted deliverables.
 
@@ -36,10 +36,11 @@ This status is a snapshot, not a claim that the remaining work is cancelled or u
     │   ├── app.js
     │   ├── server.js
     │   ├── config/db.js
-    │   ├── controllers/             # authentication and book APIs
-    │   ├── middleware/authenticate.js
-    │   ├── models/                  # User and Book
-    │   └── routes/                  # /api/auth and /api/books
+    │   ├── controllers/             # authentication, catalogue, and commerce APIs
+    │   ├── middleware/              # JWT authentication and shipping webhook auth
+    │   ├── models/                  # users, books, carts, coupons, orders, reviews
+    │   ├── routes/                  # authentication, catalogue, and commerce APIs
+    │   └── services/                # coupon pricing, gateway adapter, rating aggregates
     └── tests/
         └── Jest unit and API integration tests
 ```
@@ -53,13 +54,9 @@ cd server
 npm ci
 ```
 
-Create `server/.env` for local development (do not commit it):
-
-```dotenv
-MONGODB_URI=mongodb://127.0.0.1:27017/online_bookstore
-JWT_SECRET=replace-with-a-local-development-secret
-PORT=5000
-```
+Copy `server/.env.example` to `server/.env` and set local credentials (do not
+commit `.env`). Password recovery requires an SMTP account and a reachable
+`PASSWORD_RESET_URL`. Do not use the example placeholders as production secrets.
 
 Available scripts, defined in `server/package.json`:
 
@@ -67,7 +64,13 @@ Available scripts, defined in `server/package.json`:
 npm start       # start the API
 npm run dev     # start with nodemon
 npm test        # run Jest (requires MongoDB for the integration tests)
+npm run admin:promote -- account@example.com  # promote an existing user account
 ```
+
+Provision the first administrator only after registering that account; run
+`npm run admin:promote -- account@example.com` with the correct `MONGODB_URI`.
+The promotion script does not create accounts or accept credentials from the
+browser.
 
 For a repeatable test run, point `MONGODB_URI` at an isolated local test database and run:
 
@@ -88,6 +91,144 @@ npm run build     # production build
 ```
 
 The frontend stores the login token and returned user summary in browser local storage. Book creation sends that token as a Bearer token; the server verifies it and obtains the seller display name from the database user record.
+
+## Commerce API
+
+Cart, coupon-validation, checkout, and buyer-order endpoints require an
+authenticated JWT. Cart contents and order ownership are scoped to the logged-in
+user.
+
+- `GET /api/cart` — return the persisted cart and subtotal.
+- `POST /api/cart/items` — add `{ "bookId": "<id>", "quantity": 1 }`; stock and
+  active-listing state are checked by the server.
+- `DELETE /api/cart/items/:bookId` and `DELETE /api/cart` — remove a line or
+  clear the cart.
+- `GET /api/addresses`, `POST /api/addresses`,
+  `PATCH /api/addresses/:addressId/default`, and
+  `DELETE /api/addresses/:addressId` — manage up to ten saved, buyer-owned
+  shipping addresses. The first address becomes the default automatically.
+- In the customer UI, signed-in buyers can add books to their cart, review the
+  cart, and select a saved shipping address or save a new one at `/checkout`.
+  The selected address is sent with the idempotent checkout request and stored
+  as an order snapshot; deleting or changing a saved address does not mutate
+  existing orders.
+- Checkout validates coupon codes against the buyer's current server-side cart
+  before including an accepted code in the payment-order request. After payment,
+  buyers can use `/orders` to view tracking history and request an eligible
+  cancellation or return; eligibility and refund processing remain server-side.
+- Sellers can manage their own listings at `/seller/dashboard`, edit at
+  `/sell/:id/edit`, and create a listing at `/sell`. The backend rejects
+  normalized duplicate ISBNs and scopes listing edits/removal to the owner.
+- Public book details show verified reviews. An authenticated buyer can submit
+  one review only after a delivered purchase of that book.
+- `GET /api/orders/:orderId/invoice` — download a PDF invoice for a paid order
+  owned by the authenticated buyer.
+- `POST /api/reports/books/:bookId` — submit a report about a listing. Reports
+  and duplicate ISBN flags appear in administrator moderation.
+- `POST /api/coupons/validate` — validate `{ "code": "..." }` against the
+  current server-side cart. Coupons are provisioned as `Coupon` records.
+- `POST /api/orders/checkout` — submit a shipping address, optional coupon code,
+  and a unique `Idempotency-Key` header. The API calculates prices, reserves
+  stock, and creates a Razorpay Order. Its response includes the public `keyId`,
+  provider `orderId`, amount, and currency for Razorpay Checkout. No card data
+  is sent to or stored by the bookstore.
+- `POST /api/orders/:orderId/payment/verify` — send
+  `razorpay_payment_id`, `razorpay_order_id`, and `razorpay_signature` from
+  Checkout. The server verifies the HMAC, fetches the payment from Razorpay,
+  checks the order/amount/currency, captures authorized payments, and confirms
+  the order only after capture.
+- `POST /api/orders/:orderId/payment/failure` — reconcile a Checkout failure
+  against the payment fetched from Razorpay; signed webhooks are also processed.
+- `POST /api/payments/razorpay/webhook` — configure this URL in the Razorpay
+  Dashboard for `payment.captured`, `payment.failed`, `refund.processed`, and
+  `refund.failed`. The server validates the signature against the raw request
+  body using `RAZORPAY_WEBHOOK_SECRET`.
+- `GET /api/orders` and `GET /api/orders/:orderId` — read only the logged-in
+  buyer's orders.
+- `POST /api/orders/:orderId/cancellation` — request cancellation before
+  shipment. A full normal refund is created through Razorpay using its
+  idempotent refund API.
+- `POST /api/orders/:orderId/return` — request a return for a delivered order
+  within `ORDER_RETURN_WINDOW_DAYS` (default 7; allowed range 1–30). A full
+  Razorpay refund is initiated and the resulting refund status is tracked.
+- `POST /api/orders/:orderId/tracking` — courier callback with `status` and
+  optional `occurredAt`, authenticated by `x-shipping-webhook-secret`; stages
+  must advance in order.
+- `POST /api/reviews` — submit a 1–5 star review only for a delivered,
+  successfully paid order line. `GET /api/reviews/eligibility/:bookId` (JWT)
+  returns eligible delivered orders; `GET /api/reviews/books/:bookId` and
+  `GET /api/reviews/sellers/:seller` return reviews and aggregate scores.
+
+Authenticated sellers can edit and manage only listings they own:
+
+- `GET /api/books/mine` and `GET /api/books/mine/:id` — list or load the
+  seller's own listings, including removed listings in the dashboard.
+- `PUT /api/books/:id` — update listing details; ownership and editable fields
+  are checked by the server.
+- `DELETE /api/books/:id` — soft-remove a listing from the public catalogue
+  while preserving its references in orders and reviews.
+- `GET /api/books/seller/dashboard` — listing totals, available stock,
+  completed-order sales/revenue, and seller review aggregate.
+
+Listing creation and editing normalize ISBN formatting and flag duplicate ISBN
+conflicts rather than allowing duplicate entries.
+
+Existing listings and order items predate seller ownership IDs. Preview the
+safe legacy mapping before applying it; only unique exact seller-name matches
+are assigned, while ambiguous or unmatched names are reported and left alone:
+
+```powershell
+cd server
+npm run migrate:listing-owners
+npm run migrate:listing-owners -- --apply
+```
+
+### Razorpay setup and compliance boundary
+
+The client helper in `client/src/api/commerce.js` loads Razorpay's hosted
+Checkout.js, creates a server-priced Razorpay Order, opens the provider-hosted
+payment form, and posts the returned payment signature to the verification API.
+The checkout page calls `openRazorpayCheckout` after server-side order creation.
+The backend never accepts raw PAN/CVV/expiry data. `RAZORPAY_KEY_SECRET`
+is server-only; only `RAZORPAY_KEY_ID` is returned to the browser. Payment
+confirmation requires both server-side signature verification and a server
+fetch of the Razorpay payment. Webhook callbacks use HMAC verification over the
+raw request bytes. Refunds use Razorpay's idempotent refund API.
+
+Use Razorpay test-mode credentials and configure the webhook secret and event
+subscriptions in the Dashboard before testing provider callbacks. Live
+payments cannot work until valid Dashboard credentials and an approved
+Razorpay account are provided. This implementation is not, by itself, a
+PCI-DSS certification: production deployment must enforce TLS, protect
+secrets, verify deployment configuration, and complete the applicable
+compliance assessment.
+
+Shipping callbacks require `SHIPPING_WEBHOOK_SECRET`; without it, status
+updates are disabled. Keep this secret out of source control. The shipping
+integration should additionally verify provider signatures before production
+use.
+
+### Accounts and administration
+
+- `GET /api/account/me` and `PATCH /api/account/me` — view and update the
+  authenticated user's name, email, and phone.
+- `POST /api/account/password/forgot` and
+  `POST /api/account/password/reset` — request and consume a single-use,
+  30-minute password-reset link. SMTP settings and `PASSWORD_RESET_URL` are
+  required to deliver email.
+- The client provides `/profile`, `/forgot-password`, and `/reset-password`.
+  Saved shipping addresses remain available at checkout.
+- `/admin` provides moderation, account suspension/reinstatement, seller
+  verification, coupon controls, analytics, and the audit log. Every `/api/admin`
+  endpoint requires an authenticated administrator; create the initial admin
+  from an existing account with `npm run admin:promote -- account@example.com`.
+- New listings are restricted to administrator-verified sellers. Account role
+  and suspension checks are enforced by the API, not only by client navigation.
+
+Local tests use mocked payment/mail providers where credentials are not
+configured. A passing local test suite does not verify live email delivery,
+Razorpay transactions, courier callbacks, production TLS/uptime, or PCI-DSS
+certification.
 
 ## GitHub Actions and pull requests
 

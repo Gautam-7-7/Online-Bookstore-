@@ -239,6 +239,8 @@ Preserve platform availability against common web attacks (e.g., brute-force log
 
 Exit criteria for acceptance: all High-priority functional requirements implemented and verified, no critical NFR failures, and the RTM shows all mapped test cases passed.
 
+The current RTM includes partial statuses and therefore does not claim that these final acceptance exit criteria have been met. Close or explicitly waive each partial requirement with the project evaluator and attach deployment/test evidence before declaring the system fully accepted.
+
 Acceptance test suites: Authentication, Catalog & Search, Listing Management, Cart & Checkout, Order Management, Reviews, Performance, Security, and Accessibility.
 
 The requirement-level acceptance criteria in Section 4 and the NFR/security criteria in Section 5 provide the pass/fail conditions for the referenced test cases.
@@ -265,43 +267,45 @@ The incorrect Add to Cart <<include>> Checkout relationship has been removed. Ap
 
 # 8. Requirements Traceability Matrix (RTM)
 
-The RTM maps every functional, non-functional, and security requirement to its section/design specification, implementation module, and verification test case. Status uses N/P/A as shown in the template.
+The RTM maps every functional, non-functional, and security requirement to its section/design specification, implementation module, and verification test case. Status is evidence-based: D = implemented and verified locally against the mapped application behavior; P = implementation exists but the full acceptance criterion still needs external configuration, deployment, or independent evidence; N = not implemented.
 
-| Req ID | Requirement (short) | Section ref / Design Spec | Module | Test case(s) | Status (N/P/A) |
+| Req ID | Requirement (short) | Section ref / Design Spec | Module | Test case(s) | Status (D/P/N) |
 | --- | --- | --- | --- | --- | --- |
-| BOOK-F-001 | User registration | 4.1 / DS-Auth-01 | AuthModule | TC-Auth-01 | N |
-| BOOK-F-002 | User login | 4.1 / DS-Auth-01 | AuthModule | TC-Auth-02 | N |
-| BOOK-F-003 | Password reset | 4.1 / DS-Auth-02 | AuthModule | TC-Auth-03 | N |
-| BOOK-F-004 | Profile & address mgmt | 4.1 / DS-Auth-03 | AuthModule | TC-Auth-04 | N |
-| BOOK-F-005 | Browse catalog | 4.2 / DS-Cat-01 | CatalogModule | TC-Cat-01 | N |
-| BOOK-F-006 | Keyword search | 4.2 / DS-Cat-01 | CatalogModule | TC-Cat-02 | N |
-| BOOK-F-007 | Book detail page | 4.2 / DS-Cat-02 | CatalogModule | TC-Cat-03 | N |
-| BOOK-F-008 | Filter/sort results | 4.2 / DS-Cat-02 | CatalogModule | TC-Cat-04 | N |
-| BOOK-F-009 | Create listing | 4.3 / DS-List-01 | ListingModule | TC-List-01 | N |
-| BOOK-F-010 | Edit listing | 4.3 / DS-List-01 | ListingModule | TC-List-02 | N |
-| BOOK-F-011 | Remove/flag listing | 4.3 / DS-List-02 | ListingModule | TC-List-03 | N |
-| BOOK-F-012 | Seller dashboard | 4.3 / DS-List-03 | ListingModule | TC-List-04 | N |
-| BOOK-F-013 | Cart add/remove | 4.4 / DS-Cart-01 | CartModule | TC-Cart-01 | N |
-| BOOK-F-014 | Apply coupon | 4.4 / DS-Cart-02 | CartModule | TC-Cart-02 | N |
-| BOOK-F-015 | Select shipping address | 4.4 / DS-Cart-03 | CheckoutModule | TC-Cart-03 | N |
-| BOOK-F-016 | Payment processing | 4.4 / DS-Pay-01 | CheckoutModule | TC-Pay-01 | N |
-| BOOK-F-017 | Order confirmation/invoice | 4.5 / DS-Ord-01 | OrderModule | TC-Ord-01 | N |
-| BOOK-F-018 | Order tracking | 4.5 / DS-Ord-02 | OrderModule | TC-Ord-02 | N |
-| BOOK-F-019 | Cancel/return | 4.5 / DS-Ord-03 | OrderModule | TC-Ord-03 | N |
-| BOOK-F-020 | Rate & review | 4.6 / DS-Rev-01 | ReviewModule | TC-Rev-01 | N |
-| BOOK-F-021 | Aggregate rating | 4.6 / DS-Rev-02 | ReviewModule | TC-Rev-02 | N |
-| BOOK-F-022 | Moderate listings/reports | 4.7 / DS-Admin-01 | AdminModule | TC-Admin-01 | N |
-| BOOK-F-023 | Suspend/verify + analytics | 4.7 / DS-Admin-02 | AdminModule | TC-Admin-02 | N |
-| BOOK-NF-001 | Response time target (3s) | 5 / DS-Perf-01 | WebUI / API | TC-Perf-01 | N |
-| BOOK-NF-002 | Uptime 99.5% | 5 / DS-Ops-01 | Infra / Monitoring | Ops reports | N |
-| BOOK-NF-003 | PCI-DSS compliance | 5 / DS-Sec-01 | Payment / Security | TC-Sec-01 | N |
-| BOOK-NF-004 | Responsive/accessible UI | 5 / DS-UX-01 | WebUI | TC-UX-01 | N |
-| BOOK-NF-005 | Horizontal scalability | 5 / DS-Scale-01 | Catalog / Order services | TC-Scale-01 | N |
-| BOOK-SR-001 | TLS 1.2+ | 5.1.2 / DS-Sec-02 | Infra / Network | TC-Sec-02 | N |
-| BOOK-SR-002 | Password hashing | 5.1.2 / DS-Sec-03 | AuthModule | TC-Sec-03 | N |
-| BOOK-SR-003 | Payment tokenisation | 5.1.2 / DS-Sec-04 | CheckoutModule | TC-Sec-04 | N |
-| BOOK-SR-004 | Account lockout | 5.1.2 / DS-Sec-05 | AuthModule | TC-Sec-05 | N |
-| BOOK-SR-005 | Input validation/sanitisation | 5.1.2 / DS-Sec-06 | All modules | TC-Sec-06 | N |
+| BOOK-F-001 | User registration | 4.1 / DS-Auth-01 | AuthModule | TC-Auth-01 | P |
+| BOOK-F-002 | User login | 4.1 / DS-Auth-01 | AuthModule | TC-Auth-02 | D |
+| BOOK-F-003 | Password reset | 4.1 / DS-Auth-02 | AuthModule | TC-Auth-03 | P |
+| BOOK-F-004 | Profile & address mgmt | 4.1 / DS-Auth-03 | AuthModule | TC-Auth-04 | D |
+| BOOK-F-005 | Browse catalog | 4.2 / DS-Cat-01 | CatalogModule | TC-Cat-01 | D |
+| BOOK-F-006 | Keyword search | 4.2 / DS-Cat-01 | CatalogModule | TC-Cat-02 | D |
+| BOOK-F-007 | Book detail page | 4.2 / DS-Cat-02 | CatalogModule | TC-Cat-03 | D |
+| BOOK-F-008 | Filter/sort results | 4.2 / DS-Cat-02 | CatalogModule | TC-Cat-04 | D |
+| BOOK-F-009 | Create listing | 4.3 / DS-List-01 | ListingModule | TC-List-01 | D |
+| BOOK-F-010 | Edit listing | 4.3 / DS-List-01 | ListingModule | TC-List-02 | D |
+| BOOK-F-011 | Remove/flag listing | 4.3 / DS-List-02 | ListingModule | TC-List-03 | D |
+| BOOK-F-012 | Seller dashboard | 4.3 / DS-List-03 | ListingModule | TC-List-04 | D |
+| BOOK-F-013 | Cart add/remove | 4.4 / DS-Cart-01 | CartModule | TC-Cart-01 | D |
+| BOOK-F-014 | Apply coupon | 4.4 / DS-Cart-02 | CartModule | TC-Cart-02 | D |
+| BOOK-F-015 | Select shipping address | 4.4 / DS-Cart-03 | CheckoutModule | TC-Cart-03 | D |
+| BOOK-F-016 | Payment processing | 4.4 / DS-Pay-01 | CheckoutModule | TC-Pay-01 | P |
+| BOOK-F-017 | Order confirmation/invoice | 4.5 / DS-Ord-01 | OrderModule | TC-Ord-01 | D |
+| BOOK-F-018 | Order tracking | 4.5 / DS-Ord-02 | OrderModule | TC-Ord-02 | P |
+| BOOK-F-019 | Cancel/return | 4.5 / DS-Ord-03 | OrderModule | TC-Ord-03 | D |
+| BOOK-F-020 | Rate & review | 4.6 / DS-Rev-01 | ReviewModule | TC-Rev-01 | D |
+| BOOK-F-021 | Aggregate rating | 4.6 / DS-Rev-02 | ReviewModule | TC-Rev-02 | D |
+| BOOK-F-022 | Moderate listings/reports | 4.7 / DS-Admin-01 | AdminModule | TC-Admin-01 | D |
+| BOOK-F-023 | Suspend/verify + analytics | 4.7 / DS-Admin-02 | AdminModule | TC-Admin-02 | D |
+| BOOK-NF-001 | Response time target (3s) | 5 / DS-Perf-01 | WebUI / API | TC-Perf-01 | P |
+| BOOK-NF-002 | Uptime 99.5% | 5 / DS-Ops-01 | Infra / Monitoring | Ops reports | P |
+| BOOK-NF-003 | PCI-DSS compliance | 5 / DS-Sec-01 | Payment / Security | TC-Sec-01 | P |
+| BOOK-NF-004 | Responsive/accessible UI | 5 / DS-UX-01 | WebUI | TC-UX-01 | P |
+| BOOK-NF-005 | Horizontal scalability | 5 / DS-Scale-01 | Catalog / Order services | TC-Scale-01 | P |
+| BOOK-SR-001 | TLS 1.2+ | 5.1.2 / DS-Sec-02 | Infra / Network | TC-Sec-02 | P |
+| BOOK-SR-002 | Password hashing | 5.1.2 / DS-Sec-03 | AuthModule | TC-Sec-03 | D |
+| BOOK-SR-003 | Payment tokenisation | 5.1.2 / DS-Sec-04 | CheckoutModule | TC-Sec-04 | D |
+| BOOK-SR-004 | Account lockout | 5.1.2 / DS-Sec-05 | AuthModule | TC-Sec-05 | D |
+| BOOK-SR-005 | Input validation/sanitisation | 5.1.2 / DS-Sec-06 | All modules | TC-Sec-06 | D |
+
+Partial statuses identify acceptance dependencies, not missing application screens: email verification is not implemented; password-reset mail and live payment need configured external services; tracking needs a courier integration; the remaining NFR/security rows require deployed infrastructure, browser/load testing, or formal compliance evidence. No production service or certification was available during local verification.
 
 ## Document consistency checks completed
 

@@ -58,6 +58,9 @@ export default function RegisterPage() {
                     <input
                         type="password"
                         autoComplete="new-password"
+                        minLength="10"
+                        pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{10,}"
+                        title="Use 10 or more characters with uppercase, lowercase, a number, and a symbol."
                         required
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
