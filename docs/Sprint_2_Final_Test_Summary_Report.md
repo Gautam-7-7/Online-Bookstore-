@@ -1,127 +1,70 @@
-# Sprint 2 Final Test Summary & Defect Closure Report
-**Project:** Online Bookstore — Team 12  
-**Lead QA / Tester:** D Sai Karthik (PES2UG24CS141)  
-**Execution Cycle:** Sprint 2 Final Acceptance Testing  
-**Date:** 02 November 2026  
-**Status:** **APPROVED & PASSED (100% Pass Rate)**  
+# Sprint 2 Verification Report
 
----
+**Project:** Online Bookstore — Team 12
+**Execution date:** 02 November 2026
+**Status:** **Partially verified; two environment-dependent checks remain not run**
 
-## 1. Executive Summary
+## 1. Evidence summary
 
-This report documents the final testing execution and evidence for Sprint 2 of the Online Bookstore project. All planned features across buyer, seller, admin, and commerce workflows were verified using automated unit testing (Jest), frontend integration testing (Vitest + React Testing Library), end-to-end user journeys, and continuous integration via GitHub Actions.
+| Measure | Result |
+|---|---:|
+| Workbook cases | 108 planned |
+| Passed | 106 |
+| Failed | 0 |
+| Blocked | 0 |
+| Not run | 2 |
+| Workbook pass rate | 98.15% of planned cases |
+| Backend tests | 17 suites, 110 passed |
+| Frontend tests | 1 suite, 19 passed |
+| Frontend production build | Passed |
+| CI | Passed: run [#41445263666](https://github.com/Gautam-7-7/Online-Bookstore-/actions/runs/41445263666) |
 
-All **108 test cases** across 9 functional and non-functional test suites have been executed with a **100% pass rate**, zero open critical/high defects, and verified CI build status.
+`TC-Perf-01.1` (500-concurrent-user performance) and `TC-Sec-02.1` (TLS 1.2+ scan) remain **Not Run** because no reproducible benchmark artifact or deployed TLS scan environment is committed. No manual browser acceptance test was executed.
 
----
+## 2. Functional verification
 
-## 2. Test Execution Metrics
+Automated backend and frontend evidence covers authentication, password reset, profile and addresses, catalogue/search/filtering, seller verification and listing management, cart persistence, coupons, Razorpay sandbox checkout, invoices, order ownership, tracking transitions, cancellation/returns, reviews/ratings, administration, moderation, and analytics.
 
-| Metric | Target | Actual Result | Status |
-| :--- | :--- | :--- | :--- |
-| **Total Test Cases Planned** | 108 | **108** | Met |
-| **Total Test Cases Executed** | 108 | **108 (100%)** | Met |
-| **Tests Passed** | ≥ 95% | **108 (100%)** | **PASS** |
-| **Tests Failed** | 0 Critical | **0** | **PASS** |
-| **Tests Blocked** | 0 | **0** | **PASS** |
-| **Automated Test Suites** | All Passing | **13 suites passing (75 unit/integration tests)** | **PASS** |
-| **Requirements Coverage** | 100% (33/33) | **100% (23 FR + 5 NFR + 5 SR)** | **PASS** |
+The backend suite passed with MongoDB 7.0 running locally. The frontend suite passed under the repository’s Node 22 CI environment; Node 26 required `NODE_OPTIONS=--localstorage-file=/tmp/online-bookstore-localstorage` for the local jsdom run. The production build completed successfully.
 
-### Breakdown by Module / Feature Area
+## 3. Payment gateway verification
 
-| Module | SRS Trace | Total TCs | Pass | Fail | Blocked | Pass % |
-| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
-| **Authentication & Profile** | BOOK-F-001..004, BOOK-SR-002, 004 | 41 | 41 | 0 | 0 | 100% |
-| **Catalog & Keyword Search** | BOOK-F-005..008, BOOK-NF-001 | 21 | 21 | 0 | 0 | 100% |
-| **Listing & Seller Management** | BOOK-F-009..012 | 19 | 19 | 0 | 0 | 100% |
-| **Cart & Checkout** | BOOK-F-013..016, BOOK-SR-003 | 8 | 8 | 0 | 0 | 100% |
-| **Order Management & Invoices**| BOOK-F-017..019 | 5 | 5 | 0 | 0 | 100% |
-| **Reviews & Ratings** | BOOK-F-020..021 | 3 | 3 | 0 | 0 | 100% |
-| **Admin & Moderation** | BOOK-F-022..023 | 3 | 3 | 0 | 0 | 100% |
-| **Performance, Ops & Security**| BOOK-NF-002..005, BOOK-SR-001, 005 | 5 | 5 | 0 | 0 | 100% |
-| **End-to-End Integration** | Full Platform Flows | 3 | 3 | 0 | 0 | 100% |
-| **TOTAL** | **All 33 SRS Requirements** | **108** | **108** | **0** | **0** | **100%** |
+Razorpay integration is test/sandbox-oriented and does not store raw card numbers or CVV. Automated coverage verifies:
 
----
+- provider order creation from the database-derived total;
+- idempotent checkout retries without double stock reservation;
+- cleanup after provider-order creation failure;
+- checkout signature validation and payment/order/amount/currency matching;
+- authorized-payment capture before settlement;
+- failed-payment reconciliation while preserving the cart;
+- webhook signature verification and fail-closed invalid requests;
+- payment status and confirmed-order settlement.
 
-## 3. Automated Test Suites & Continuous Integration (CI) Result
+No live payment or production credential was used.
 
-### 3.1 GitHub Actions CI Pipeline
-* **Workflow:** `.github/workflows/ci.yml`
-* **Trigger:** Pushes and Pull Requests on `main`
-* **Latest Workflow Run:** [#41321426582](https://github.com/Gautam-7-7/Online-Bookstore-/actions) (Status: **SUCCESS / GREEN**)
-* **Environment:** Ubuntu 22.04 LTS, Node.js 22, MongoDB 7.0 Service Container.
+## 4. Order-tracking verification
 
-### 3.2 Backend Test Results (Jest)
-* **Suites Executed:** 12 unit and service test suites.
-* **Result:** **56 passed, 0 failed**.
-* **Key Suites Verified:**
-  * `tests/review-eligibility.test.js`: Verified purchaser gating for reviews.
-  * `tests/order-cancellation.test.js`: 7-day policy window enforcement.
-  * `tests/book-management.test.js`: Seller listing CRUD and duplicate ISBN flagging.
-  * `tests/shipping-addresses.test.js`: Address persistence and default selection.
-  * `tests/checkout.test.js`: Cart session persistence, coupon application, and payment tokenization.
-  * `tests/order-tracking.test.js`: Order lifecycle status transitions and courier webhook HMAC verification.
-  * `tests/ratings.services.test.js`: Recalculation of weighted aggregate ratings.
-  * `tests/auth.test.js`: Salted bcrypt hashing, token issuance, and 5-attempt account lockout.
+Automated coverage verifies buyer-scoped order retrieval, confirmation/invoice flows, the `Placed → Shipped → Out for Delivery → Delivered` progression, rejection of skipped transitions, timestamp validation, authenticated shipping webhook updates, tracking history, cancellation policy handling, and return/refund handling. Courier updates are simulated through the HMAC-protected webhook; no real courier integration or fabricated shipment event was used.
 
-### 3.3 Frontend Test Results (Vitest)
-* **File:** `client/src/App.test.jsx`
-* **Result:** **19 passed, 0 failed** (Duration: 4.55s).
-* **Coverage:** Guest catalogue, search query debouncing, book details, registration, login/logout, profile address book, cart quantity controls, coupon input, checkout form, order status tracker, seller listing form, and admin moderation dashboard.
+## 5. Security, performance, and operations
 
----
+| Area | Finding |
+|---|---|
+| Dependency audit | Backend: no reported vulnerabilities. Frontend: two moderate `react-router` advisories remain; the available fix is a major-version upgrade and was not applied blindly. |
+| Input/payment security | Automated code and route tests passed for validation, sanitisation, password hashing, account lockout, payment tokenisation boundaries, and webhook signatures. |
+| Performance | Not verified against the SRS 500-concurrent-user/90th-percentile target; no committed load-test evidence. |
+| TLS | Not verified with an environment-backed TLS scan; no deployed HTTPS endpoint was available. |
+| Uptime/scalability | Not verified with production monitoring or multi-instance load evidence. |
+| Accessibility | Automated frontend accessibility test passed for the covered catalogue view; full WCAG 2.1 AA and viewport audit were not run. |
 
-## 4. Confirmation that the Website Works
+## 6. Release and repository controls
 
-Manual end-to-end verification and UI functional smoke testing were conducted against the running application:
+- Working branch: `final/sprint-2-deliverables`.
+- Base commit: `cabe67fdb0656cf56af9058924a7db2ab2b19cca`.
+- No release tag or GitHub release was created or moved; release remains pending explicit approval.
+- The demo-video issue remains out of scope.
+- Protected submitted documents were compared byte-for-byte with `origin/main` and are unchanged.
 
-1. **Guest Buyer Flow:**
-   * Visitor navigates to home catalogue, browses by genre ("Computer Science", "Fiction"), and executes keyword search by title and author.
-   * Book detail page displays price, stock count, condition, and seller username.
-2. **Authentication Flow:**
-   * User registers with valid password complexity; duplicate registration is rejected.
-   * Login issues JWT token stored securely in client state; profile displays saved shipping addresses.
-3. **Cart & Checkout Flow:**
-   * Books added to persistent cart survive page refreshes.
-   * Applying valid coupon `SAVE10` deducts discount amount immediately.
-   * Selecting a shipping address and confirming payment completes the transaction, clears cart, and creates confirmed order.
-4. **Orders & Returns Flow:**
-   * Placed order renders downloadable invoice PDF matching line item totals.
-   * Status progression (Placed ➔ Shipped ➔ Delivered) displays accurately; return button functions within the 7-day policy window.
-5. **Seller Flow:**
-   * Seller creates book listing with ISBN-13 format validation; listing appears immediately in public catalogue and seller dashboard.
-6. **Administrator Flow:**
-   * Admin dashboard shows moderation queues for flagged listings and reports; resolving an item immediately removes it from the public catalogue and records an audit log entry.
+## 7. Remaining blockers
 
----
-
-## 5. Defect Closure Report
-
-| Defect ID | Description | Severity | Module | Root Cause | Resolution & Verification | Status |
-| :--- | :--- | :---: | :---: | :--- | :--- | :---: |
-| **DEF-01** | Missing seller assignment on book creation in Sprint 1 | High | Listing | Endpoint had no authentication middleware | Mounted `authenticate` middleware; derived seller from JWT token. | **CLOSED** |
-| **DEF-02** | Coupon applied to carts below minimum threshold | Medium | Checkout | Missing minSpend condition check | Added validation in `coupons.js`; verified in `checkout.test.js`. | **CLOSED** |
-| **DEF-03** | Return permitted past 7-day policy window | Medium | Orders | Timestamp difference checked calendar days instead of elapsed hours | Implemented `ORDER_RETURN_WINDOW_DAYS` comparison in `order-cancellation.test.js`. | **CLOSED** |
-| **DEF-04** | Review submission allowed by non-buyers | High | Reviews | Review route lacked completed order check | Added `hasCompletedOrderForBook` verification; verified in `review-eligibility.test.js`. | **CLOSED** |
-
----
-
-## 6. Known Limitations & Production Readiness
-
-1. **Payment Gateway in Test/Mock Mode:**  
-   * The application uses Razorpay sandbox/mock mode for student project demonstration. For production deployment, valid live API keys (`RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`) need only be placed in `.env`.
-2. **Courier Webhook Mock:**  
-   * Courier tracking transitions are triggered via authenticated mock webhook (`/api/shipping/webhook`) simulating BlueDart/Delhivery APIs with HMAC signature validation.
-3. **Email Delivery Simulation:**  
-   * Password reset tokens and invoice delivery are logged to application server output in local development; production configuration requires pointing `SMTP_HOST` to a live mailer.
-
----
-
-## 7. Sign-Off & Approvals
-
-| Role | Name | Signature / Approval | Date |
-| :--- | :--- | :--- | :--- |
-| **Lead QA Tester** | **D Sai Karthik** | *D Sai Karthik (PES2UG24CS141)* | 02-Nov-2026 |
-| **Backend Lead** | Gautam | *Gautam-7-7* | 02-Nov-2026 |
-| **Course Coordinator** | Evaluation Committee | *Pending Review* | 02-Nov-2026 |
+The implementation and automated regression suite are passing, but Sprint 2 cannot honestly be reported as fully verified until the performance benchmark and TLS scan are executed and recorded. Manual browser acceptance, production uptime, horizontal scalability, and a full deployment security review also remain unverified.
