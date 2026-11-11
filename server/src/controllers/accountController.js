@@ -114,6 +114,11 @@ const requestPasswordReset = async (req, res) => {
             message: "If an eligible account exists, password reset instructions will be sent."
         });
     } catch (error) {
+        console.error("Password reset email delivery failed", {
+            provider: (process.env.EMAIL_PROVIDER || "smtp").toLowerCase(),
+            code: error.code || "EMAIL_DELIVERY_ERROR",
+            statusCode: error.statusCode || null
+        });
         if (user) {
             user.passwordResetTokenHash = null;
             user.passwordResetExpiresAt = null;

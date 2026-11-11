@@ -93,6 +93,90 @@ const sampleBooks = [
         coverImage: "",
         description:
             "A fable about following your dream and listening to your heart."
+    },
+    {
+        title: "The Silent Patient",
+        author: "Alex Michaelides",
+        isbn: "9781250301697",
+        category: "Mystery",
+        price: 320,
+        condition: "Like New",
+        seller: "PageTurners",
+        stock: 0,
+        rating: 4.2,
+        coverImage: "",
+        description:
+            "A psychological thriller about a painter who stops speaking after a shocking event."
+    },
+    {
+        title: "The Hobbit",
+        author: "J. R. R. Tolkien",
+        isbn: "9780547928227",
+        category: "Fantasy",
+        price: 450,
+        condition: "Good",
+        seller: "PageTurners",
+        stock: 7,
+        rating: 4.9,
+        coverImage: "",
+        description:
+            "Bilbo Baggins joins a group of dwarves on an unexpected journey."
+    },
+    {
+        title: "Pride and Prejudice",
+        author: "Jane Austen",
+        isbn: "9780141439518",
+        category: "Romance",
+        price: 260,
+        condition: "Fair",
+        seller: "ClassicShelf",
+        stock: 14,
+        rating: 4.6,
+        coverImage: "",
+        description:
+            "A classic story of first impressions, family, and finding love."
+    },
+    {
+        title: "A Brief History of Time",
+        author: "Stephen Hawking",
+        isbn: "9780553380163",
+        category: "Science",
+        price: 690,
+        condition: "New",
+        seller: "CuriousMinds",
+        stock: 4,
+        rating: 4.7,
+        coverImage: "",
+        description:
+            "An accessible exploration of the universe, black holes, and the nature of time."
+    },
+    {
+        title: "The Joy of Cooking",
+        author: "Irma S. Rombauer",
+        isbn: "9781501169717",
+        category: "Cooking",
+        price: 780,
+        condition: "Like New",
+        seller: "HomeLibrary",
+        stock: 3,
+        rating: 4.5,
+        coverImage: "",
+        description:
+            "A practical cookbook with recipes and guidance for everyday cooking."
+    },
+    {
+        title: "The Art Book",
+        author: "Phaidon Editors",
+        isbn: "9780714864679",
+        category: "Art & Design",
+        price: 1200,
+        condition: "New",
+        seller: "StudioBooks",
+        stock: 2,
+        rating: 4.4,
+        coverImage: "",
+        description:
+            "An illustrated introduction to artists and artworks from across the world."
     }
 ];
 

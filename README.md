@@ -54,8 +54,11 @@ npm ci
 ```
 
 Copy `server/.env.example` to `server/.env` and set local credentials (do not
-commit `.env`). Password recovery requires an SMTP account and a reachable
-`PASSWORD_RESET_URL`. Do not use the example placeholders as production secrets.
+commit `.env`). Password recovery requires a configured mail provider and a
+reachable `PASSWORD_RESET_URL`. The default provider is SMTP. To send through
+Brevo's HTTPS API instead (for networks that block SMTP), set
+`EMAIL_PROVIDER=brevo`, `BREVO_API_KEY`, and `EMAIL_FROM` to a sender verified
+in Brevo. Keep provider credentials private.
 
 Available scripts, defined in `server/package.json`:
 
@@ -245,8 +248,8 @@ paid orders in the dashboard instead.
   authenticated user's name, email, and phone.
 - `POST /api/account/password/forgot` and
   `POST /api/account/password/reset` — request and consume a single-use,
-  30-minute password-reset link. SMTP settings and `PASSWORD_RESET_URL` are
-  required to deliver email.
+  30-minute password-reset link. SMTP or Brevo settings and
+  `PASSWORD_RESET_URL` are required to deliver email.
 - The client provides `/profile`, `/forgot-password`, and `/reset-password`.
   Saved shipping addresses remain available at checkout.
 - `/admin` provides moderation, account suspension/reinstatement, seller
