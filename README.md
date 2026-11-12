@@ -273,3 +273,5 @@ To review a check, open the pull request and select **Checks**, or open the repo
 Contributors should work on a feature branch, commit only their assigned scope, push the branch, and open a pull request against `main`. Do not push directly to `main`; wait for review and the applicable checks before merging. The PR should summarize changes, validation, and known limitations.
 
 <!-- ref doc 1 -->
+
+<!-- ref doc 2 -->
