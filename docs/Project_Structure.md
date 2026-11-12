@@ -12,6 +12,9 @@ Online-Bookstore-/
 |-- server/                         # Express/Mongoose backend
 |-- docs/                           # Test reports and project documentation
 |-- .github/                        # GitHub workflows and repository configuration
+|-- docker-compose.yml              # Multi-container orchestration (Client, Server, Mongo)
+|-- package.json                    # Root workspace orchestration scripts
+|-- CONTRIBUTING.md                 # Project contributing guidelines and standards
 |-- HANDOFF.md                      # Development handoff notes
 |-- README.md                       # Project overview and setup information
 |-- render.yaml                     # Render deployment configuration
