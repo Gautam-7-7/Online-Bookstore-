@@ -45,4 +45,13 @@ app.get("/", (req, res) => {
     });
 });
 
+// Health and diagnostics route
+app.get("/api/health", (req, res) => {
+    res.json({
+        status: "healthy",
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+    });
+});
+
 module.exports = app;
