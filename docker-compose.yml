@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: bookstore-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: bookstore-api
+    restart: always
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - MONGODB_URI=mongodb://mongodb:27017/online_bookstore
+      - JWT_SECRET=docker-development-jwt-secret-key-2026
+      - NODE_ENV=development
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: bookstore-client
+    restart: always
+    depends_on:
+      - server
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo-data:
